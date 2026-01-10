@@ -341,7 +341,7 @@ export function PlanManager({ currentConfig, currentPlan, onLoadPlan }: PlanMana
       </CardContent>
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
-        <DialogContent className="relative max-h-[85vh] overflow-hidden">
+        <DialogContent className="max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Exportar plan</DialogTitle>
             <DialogDescription>
@@ -391,7 +391,7 @@ export function PlanManager({ currentConfig, currentPlan, onLoadPlan }: PlanMana
           }
         }}
       >
-        <DialogContent className="relative max-h-[85vh] overflow-hidden">
+        <DialogContent className="max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Importar plan</DialogTitle>
             <DialogDescription>Pega el código exportado para recuperar el plan completo.</DialogDescription>
