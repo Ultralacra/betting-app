@@ -146,9 +146,9 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
   const [currentBalance, setCurrentBalance] = useState<number>(initialBettingData.currentBalance ?? initialConfig?.initialBudget ?? 0)
   const [isDarkMode, setIsDarkMode] = useState((initialBettingData.theme ?? "light") === "dark")
 
-  const [savedPlans, setSavedPlans] = useState(initialSavedPlans)
-
+  const [savedPlansCount, setSavedPlansCount] = useState(initialSavedPlans.length)
   const [showFirstPlanModal, setShowFirstPlanModal] = useState(false)
+  const [firstPlanName, setFirstPlanName] = useState("Mi primer plan")
 
   const [profileName, setProfileName] = useState(user?.name ?? "")
   const [currentPassword, setCurrentPassword] = useState("")
@@ -160,9 +160,49 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
   }, [isDarkMode])
 
   useEffect(() => {
-    const hasPlan = !!config && plan.length > 0
-    if (!hasPlan) setShowFirstPlanModal(true)
-  }, [config, plan.length])
+    if (typeof window === "undefined") return
+    try {
+      const raw = window.localStorage.getItem("savedPlans")
+      if (!raw) {
+        setSavedPlansCount(0)
+        return
+      }
+      const parsed = JSON.parse(raw)
+      setSavedPlansCount(Array.isArray(parsed) ? parsed.length : 0)
+    } catch {
+      setSavedPlansCount(0)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (savedPlansCount === 0) setShowFirstPlanModal(true)
+  }, [savedPlansCount])
+
+  const saveCurrentPlanToLocalStorage = (name: string, cfg: BettingConfig, pl: DayResult[]) => {
+    if (typeof window === "undefined") return
+    const raw = window.localStorage.getItem("savedPlans")
+    const existing: any[] = raw ? (() => {
+      try {
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    })() : []
+
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now())
+    const newPlan = {
+      id,
+      name: name.trim() || "Mi primer plan",
+      config: cfg,
+      plan: pl,
+      savedAt: new Date().toISOString(),
+    }
+
+    const updated = [newPlan, ...existing]
+    window.localStorage.setItem("savedPlans", JSON.stringify(updated))
+    setSavedPlansCount(updated.length)
+  }
 
   const persistBettingData = async (next: {
     config: BettingConfig | null
@@ -205,6 +245,23 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
       theme: isDarkMode ? "dark" : "light",
     })
 
+    // El modal de primer plan se cierra solo cuando exista al menos un plan guardado.
+  }
+
+  const handleCompleteFirstPlan = async (newConfig: BettingConfig) => {
+    const generatedPlan = generatePlan(newConfig, newConfig.initialBudget)
+    setConfig(newConfig)
+    setPlan(generatedPlan)
+    setCurrentBalance(newConfig.initialBudget)
+
+    await persistBettingData({
+      config: newConfig,
+      plan: generatedPlan,
+      currentBalance: newConfig.initialBudget,
+      theme: isDarkMode ? "dark" : "light",
+    })
+
+    saveCurrentPlanToLocalStorage(firstPlanName, newConfig, generatedPlan)
     setShowFirstPlanModal(false)
   }
 
@@ -220,7 +277,7 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
       theme: isDarkMode ? "dark" : "light",
     })
 
-    setShowFirstPlanModal(true)
+    // Si no hay planes guardados, se forzará el modal automáticamente.
   }
 
   const handleAddBalance = async (amount: number) => {
@@ -392,6 +449,7 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
               currentConfig={config}
               currentPlan={plan}
               onLoadPlan={handleLoadPlan}
+              onSavedPlansCountChange={setSavedPlansCount}
             />
           </div>
 
@@ -458,17 +516,55 @@ export function DashboardClient({ user, initialBettingData, initialSavedPlans }:
         </div>
       </main>
 
-      <Dialog open={showFirstPlanModal} onOpenChange={setShowFirstPlanModal}>
-        <DialogContent>
+      <Dialog
+        open={showFirstPlanModal}
+        onOpenChange={(open) => {
+          if (!open && savedPlansCount === 0) return
+          setShowFirstPlanModal(open)
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(e) => {
+            if (savedPlansCount === 0) e.preventDefault()
+          }}
+          onInteractOutside={(e) => {
+            if (savedPlansCount === 0) e.preventDefault()
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>Configura tu nuevo plan</DialogTitle>
+            <DialogTitle>Configura tu primer plan</DialogTitle>
             <DialogDescription>
-              Para empezar, crea tu primer plan de apuestas. Podrás guardarlo y ver estadísticas.
+              Para continuar, necesitas guardar al menos un plan.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={() => setShowFirstPlanModal(false)}>Entendido</Button>
+
+          <div className="space-y-2">
+            <Label>Nombre del plan</Label>
+            <Input value={firstPlanName} onChange={(e) => setFirstPlanName(e.target.value)} />
           </div>
+
+          {config && plan.length > 0 ? (
+            <div className="flex justify-end">
+              <Button
+                onClick={() => {
+                  if (!config || plan.length === 0) return
+                  saveCurrentPlanToLocalStorage(firstPlanName, config, plan)
+                  setShowFirstPlanModal(false)
+                }}
+              >
+                Guardar plan
+              </Button>
+            </div>
+          ) : (
+            <BettingForm
+              onSubmit={handleCompleteFirstPlan}
+              initialConfig={null}
+              onReset={() => {}}
+              currentBalance={0}
+              onAddBalance={() => {}}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

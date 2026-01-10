@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,19 +49,34 @@ interface PlanManagerProps {
   currentConfig: BettingConfig | null;
   currentPlan: DayResult[];
   onLoadPlan: (config: BettingConfig, plan: DayResult[]) => void;
+  onSavedPlansCountChange?: (count: number) => void;
 }
 
 export function PlanManager({
   currentConfig,
   currentPlan,
   onLoadPlan,
+  onSavedPlansCountChange,
 }: PlanManagerProps) {
-  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(() => {
-    const saved = localStorage.getItem("savedPlans");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [planName, setPlanName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem("savedPlans");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as SavedPlan[];
+      if (Array.isArray(parsed)) setSavedPlans(parsed);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    onSavedPlansCountChange?.(savedPlans.length);
+  }, [onSavedPlansCountChange, savedPlans.length]);
 
   const [exportOpen, setExportOpen] = useState(false);
   const [exportCode, setExportCode] = useState("");
