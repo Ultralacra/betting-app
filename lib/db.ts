@@ -1,10 +1,38 @@
-import { PrismaClient } from "@prisma/client"
+export type ThemeMode = "light" | "dark"
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined
+export type BettingDataDTO = {
+  configJson: string | null
+  planJson: string | null
+  currentBalance: number | null
+  theme: ThemeMode
 }
 
-export const prisma = global.prisma ?? new PrismaClient()
+const bettingDataByUserId = new Map<string, BettingDataDTO>()
 
-if (process.env.NODE_ENV !== "production") global.prisma = prisma
+export function getBettingData(userId: string): BettingDataDTO {
+  return (
+    bettingDataByUserId.get(userId) ?? {
+      configJson: null,
+      planJson: null,
+      currentBalance: null,
+      theme: "light",
+    }
+  )
+}
+
+export function upsertBettingData(
+  userId: string,
+  data: {
+    configJson: string | null
+    planJson: string | null
+    currentBalance: number | null
+    theme: ThemeMode
+  }
+): void {
+  bettingDataByUserId.set(userId, {
+    configJson: data.configJson,
+    planJson: data.planJson,
+    currentBalance: data.currentBalance,
+    theme: data.theme,
+  })
+}

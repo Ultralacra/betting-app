@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { getBettingData } from "@/lib/db"
 import { DashboardClient } from "@/components/dashboard-client"
 
 export default async function DashboardPage() {
@@ -10,33 +10,21 @@ export default async function DashboardPage() {
 
   const userId = session.user.id
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      membershipTier: true,
-      membershipExpiresAt: true,
-    },
-  })
+  const user = {
+    id: userId,
+    email: session.user.email ?? null,
+    name: session.user.name ?? null,
+    membershipTier: "FREE" as const,
+    membershipExpiresAt: null,
+  }
 
-  const bettingData = await prisma.bettingData.findUnique({
-    where: { userId },
-    select: { configJson: true, planJson: true, currentBalance: true, theme: true },
-  })
-
-  const savedPlans = await prisma.savedPlan.findMany({
-    where: { userId },
-    select: { id: true, name: true, configJson: true, planJson: true, savedAt: true },
-    orderBy: { savedAt: "desc" },
-  })
+  const bettingData = getBettingData(userId)
 
   return (
     <DashboardClient
       user={user}
-      initialBettingData={bettingData ?? { configJson: null, planJson: null, currentBalance: null, theme: "light" }}
-      initialSavedPlans={savedPlans}
+      initialBettingData={bettingData}
+      initialSavedPlans={[]}
     />
   )
 }
