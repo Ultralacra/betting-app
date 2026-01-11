@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 
-export default async function Page() {
+import { isAdminUser } from "@/lib/admin";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { AdminAchievementsClient } from "@/components/admin-achievements-client";
+
+export default async function AdminAchievementsPage() {
   const cookieStore = await cookies();
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
@@ -17,5 +20,8 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  redirect(user ? "/dashboard" : "/login");
+  if (!user) redirect("/login");
+  if (!isAdminUser(user.id)) redirect("/dashboard");
+
+  return <AdminAchievementsClient />;
 }

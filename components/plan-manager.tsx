@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -37,18 +43,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 
-interface SavedPlan {
-  id: string;
-  name: string;
-  config: BettingConfig;
-  plan: DayResult[];
-  savedAt: string;
-}
+import {
+  addSavedPlan,
+  deleteSavedPlanById,
+  loadSavedPlans,
+  makeId,
+  subscribeSavedPlansChanged,
+  type SavedPlan,
+} from "@/lib/plans/saved-plans";
 
 interface PlanManagerProps {
   currentConfig: BettingConfig | null;
   currentPlan: DayResult[];
-  onLoadPlan: (config: BettingConfig, plan: DayResult[]) => void;
+  onLoadPlan: (
+    config: BettingConfig,
+    plan: DayResult[],
+    meta?: { id: string; name: string; savedAt: string }
+  ) => void;
+  onEditPlan?: (plan: SavedPlan) => void;
   onSavedPlansCountChange?: (count: number) => void;
 }
 
@@ -56,27 +68,81 @@ export function PlanManager({
   currentConfig,
   currentPlan,
   onLoadPlan,
+  onEditPlan,
   onSavedPlansCountChange,
 }: PlanManagerProps) {
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [planName, setPlanName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem("savedPlans");
-    if (!raw) return;
+  const [planLimitOpen, setPlanLimitOpen] = useState(false);
+  const [planLimitText, setPlanLimitText] = useState<string>(
+    "Tu plan alcanzó el máximo de planes guardados."
+  );
+
+  const tryShowPlanLimit = (e: unknown) => {
+    const message = e instanceof Error ? e.message : String(e);
     try {
-      const parsed = JSON.parse(raw) as SavedPlan[];
-      if (Array.isArray(parsed)) setSavedPlans(parsed);
+      const parsed = JSON.parse(message) as {
+        error?: string;
+        details?: string;
+      };
+      if (parsed?.error === "plan_limit_reached") {
+        setPlanLimitText(
+          parsed.details ?? "Tu plan alcanzó el máximo de planes guardados."
+        );
+        setPlanLimitOpen(true);
+        return true;
+      }
     } catch {
       // ignore
     }
+    return false;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const refresh = async () => {
+      try {
+        const plans = await loadSavedPlans();
+        if (isMounted) setSavedPlans(plans);
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "No se pudieron cargar los planes",
+          description: "Intenta nuevamente.",
+        });
+      }
+    };
+
+    void refresh();
+    const unsub = subscribeSavedPlansChanged(() => {
+      void refresh();
+    });
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
-    onSavedPlansCountChange?.(savedPlans.length);
-  }, [onSavedPlansCountChange, savedPlans.length]);
+    // Evita loops cuando el padre pasa un callback inline (identidad cambia cada render).
+    // Solo notificamos cuando cambia el conteo, usando la última referencia del callback.
+  }, []);
+
+  const onSavedPlansCountChangeRef = useRef(onSavedPlansCountChange);
+  useEffect(() => {
+    onSavedPlansCountChangeRef.current = onSavedPlansCountChange;
+  }, [onSavedPlansCountChange]);
+
+  useEffect(() => {
+    onSavedPlansCountChangeRef.current?.(savedPlans.length);
+  }, [savedPlans.length]);
+
+  const persistSavedPlans = (next: SavedPlan[]) => {
+    setSavedPlans(next);
+  };
 
   const [exportOpen, setExportOpen] = useState(false);
   const [exportCode, setExportCode] = useState("");
@@ -185,7 +251,7 @@ export function PlanManager({
     };
   };
 
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     if (!currentConfig || !planName.trim()) {
       toast({
         variant: "destructive",
@@ -196,21 +262,30 @@ export function PlanManager({
     }
 
     const newPlan: SavedPlan = {
-      id: Date.now().toString(),
+      id: makeId(),
       name: planName.trim(),
       config: currentConfig,
       plan: currentPlan,
       savedAt: new Date().toISOString(),
     };
 
-    const updated = [...savedPlans, newPlan];
-    setSavedPlans(updated);
-    localStorage.setItem("savedPlans", JSON.stringify(updated));
-    setPlanName("");
-    toast({
-      title: "Plan guardado",
-      description: `“${newPlan.name}” se guardó exitosamente.`,
-    });
+    try {
+      const updated = await addSavedPlan(newPlan);
+      setSavedPlans(updated);
+      setShowSaved(true);
+      setPlanName("");
+      toast({
+        title: "Plan guardado",
+        description: `“${newPlan.name}” se guardó exitosamente.`,
+      });
+    } catch (e) {
+      if (tryShowPlanLimit(e)) return;
+      toast({
+        variant: "destructive",
+        title: "No se pudo guardar",
+        description: "Intenta nuevamente.",
+      });
+    }
   };
 
   const requestLoadPlan = (saved: SavedPlan) => {
@@ -220,7 +295,11 @@ export function PlanManager({
 
   const confirmLoadPlan = () => {
     if (!pendingPlan) return;
-    onLoadPlan(pendingPlan.config, pendingPlan.plan);
+    onLoadPlan(pendingPlan.config, pendingPlan.plan, {
+      id: pendingPlan.id,
+      name: pendingPlan.name,
+      savedAt: pendingPlan.savedAt,
+    });
     setShowSaved(false);
     setLoadConfirmOpen(false);
     toast({
@@ -235,17 +314,25 @@ export function PlanManager({
     setDeleteConfirmOpen(true);
   };
 
-  const confirmDeletePlan = () => {
+  const confirmDeletePlan = async () => {
     if (!pendingPlan) return;
-    const updated = savedPlans.filter((p) => p.id !== pendingPlan.id);
-    setSavedPlans(updated);
-    localStorage.setItem("savedPlans", JSON.stringify(updated));
-    setDeleteConfirmOpen(false);
-    toast({
-      title: "Plan eliminado",
-      description: `“${pendingPlan.name}” fue eliminado.`,
-    });
-    setPendingPlan(null);
+
+    try {
+      const updated = await deleteSavedPlanById(pendingPlan.id);
+      setSavedPlans(updated);
+      setDeleteConfirmOpen(false);
+      toast({
+        title: "Plan eliminado",
+        description: `“${pendingPlan.name}” fue eliminado.`,
+      });
+      setPendingPlan(null);
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "No se pudo eliminar",
+        description: "Intenta nuevamente.",
+      });
+    }
   };
 
   const handleExportPlan = (plan: SavedPlan) => {
@@ -290,17 +377,24 @@ export function PlanManager({
 
       const parsed = parseImportCode(importCode);
       const newPlan: SavedPlan = {
-        id: Date.now().toString(),
+        id: makeId(),
         name: parsed.name,
         config: parsed.config,
         plan: parsed.plan,
         savedAt: new Date().toISOString(),
       };
 
-      const updated = [newPlan, ...savedPlans];
+      const updated = await addSavedPlan(newPlan);
       setSavedPlans(updated);
-      localStorage.setItem("savedPlans", JSON.stringify(updated));
       setShowSaved(true);
+
+      // Cargar automáticamente el plan importado para que se renderice altiro.
+      onLoadPlan(newPlan.config, newPlan.plan, {
+        id: newPlan.id,
+        name: newPlan.name,
+        savedAt: newPlan.savedAt,
+      });
+
       setImportedPlanName(newPlan.name);
       setImportStatus("success");
       triggerConfetti();
@@ -309,6 +403,11 @@ export function PlanManager({
         description: `“${newPlan.name}” ya está en Planes Guardados.`,
       });
     } catch (e) {
+      if (tryShowPlanLimit(e)) {
+        setImportStatus("error");
+        setImportError(planLimitText);
+        return;
+      }
       const message = e instanceof Error ? e.message : "Código inválido";
       setImportStatus("error");
       setImportError(message);
@@ -322,6 +421,20 @@ export function PlanManager({
 
   return (
     <Card>
+      <AlertDialog open={planLimitOpen} onOpenChange={setPlanLimitOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Límite de planes</AlertDialogTitle>
+            <AlertDialogDescription>{planLimitText}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPlanLimitOpen(false)}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <FolderOpen className="h-4 w-4" />
@@ -393,16 +506,33 @@ export function PlanManager({
                       >
                         <FolderOpen className="h-3 w-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleExportPlan(saved)}
-                        title="Exportar"
-                        className="gap-1"
-                      >
-                        <Settings className="h-3 w-3" />
-                        <span className="hidden sm:inline">Exportar</span>
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Opciones"
+                            className="gap-1"
+                          >
+                            <Settings className="h-3 w-3" />
+                            <span className="hidden sm:inline">Opciones</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              onEditPlan?.(saved);
+                            }}
+                          >
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleExportPlan(saved)}
+                          >
+                            Exportar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         size="sm"
                         variant="ghost"

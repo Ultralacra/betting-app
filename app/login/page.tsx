@@ -1,42 +1,183 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { TrendingUp } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { TrendingUp } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { supabaseAuthErrorToSpanish } from "@/lib/supabase/errors";
+
+type AuthView = "login" | "register" | "forgot" | "updatePassword";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("test@bettracker.pro")
-  const [password, setPassword] = useState("123456")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+  const [view, setView] = useState<AuthView>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+  useEffect(() => {
+    let isMounted = true;
 
-    setLoading(false)
+    const isRecoveryLink =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("type=recovery") ||
+        new URLSearchParams(window.location.search).get("type") === "recovery");
 
-    if (!res || res.error) {
-      setError("Credenciales inválidas (demo)")
-      return
+    if (isRecoveryLink) {
+      setView("updatePassword");
     }
 
-    router.push("/dashboard")
-  }
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      // Si venimos desde recuperación de contraseña, no redirigimos al dashboard.
+      if (data.session && !isRecoveryLink) {
+        router.push("/dashboard");
+      }
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setView("updatePassword");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [router, supabase]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    setLoading(true);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setLoading(false);
+      setError("Ingresa tu email");
+      return;
+    }
+
+    if (view === "login") {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      setLoading(false);
+      if (signInError) {
+        setError(supabaseAuthErrorToSpanish(signInError));
+        return;
+      }
+      router.push("/dashboard");
+      return;
+    }
+
+    if (view === "register") {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/login`
+              : undefined,
+        },
+      });
+      setLoading(false);
+      if (signUpError) {
+        setError(supabaseAuthErrorToSpanish(signUpError));
+        return;
+      }
+
+      // Supabase a veces responde 200 aunque el email ya exista (por seguridad).
+      // En ese caso, `identities` suele venir vacío.
+      const identities = (data.user as { identities?: unknown[] } | null)
+        ?.identities;
+      if (Array.isArray(identities) && identities.length === 0) {
+        setError(
+          "Ya existe una cuenta con este email. Ingresa o recupera tu contraseña."
+        );
+        setView("login");
+        return;
+      }
+
+      if (!data.user) {
+        setError(
+          "No se pudo crear la cuenta. Si ya tienes una, intenta iniciar sesión o recuperar tu contraseña."
+        );
+        setView("login");
+        return;
+      }
+
+      setMessage(
+        "Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo."
+      );
+      setView("login");
+      return;
+    }
+
+    if (view === "forgot") {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        {
+          redirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/login`
+              : undefined,
+        }
+      );
+      setLoading(false);
+      if (resetError) {
+        setError(supabaseAuthErrorToSpanish(resetError));
+        return;
+      }
+      setMessage("Te enviamos un email para recuperar tu contraseña.");
+      return;
+    }
+
+    if (view === "updatePassword") {
+      const next = newPassword.trim();
+      if (next.length < 6) {
+        setLoading(false);
+        setError("La contraseña debe tener al menos 6 caracteres");
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: next,
+      });
+      setLoading(false);
+      if (updateError) {
+        setError(supabaseAuthErrorToSpanish(updateError));
+        return;
+      }
+      setMessage("Contraseña actualizada. Ya puedes ingresar.");
+      setView("login");
+      setNewPassword("");
+      return;
+    }
+
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -48,7 +189,7 @@ export default function LoginPage() {
             </div>
             <div>
               <CardTitle>BetTracker Pro</CardTitle>
-              <CardDescription>Login de pruebas</CardDescription>
+              <CardDescription>Accede con tu cuenta</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -59,25 +200,138 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Ingresando..." : "Ingresar"}
-            </Button>
-          </form>
+          {message && (
+            <Alert>
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
 
-          <p className="text-xs text-muted-foreground">
-            Demo: <span className="font-medium">test@bettracker.pro</span> / <span className="font-medium">123456</span>
-          </p>
+          <Tabs
+            value={view}
+            onValueChange={(v) => {
+              setError(null);
+              setMessage(null);
+              setView(v as AuthView);
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Registro</TabsTrigger>
+              <TabsTrigger value="forgot">Recuperar</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login" className="mt-4">
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Ingresando..." : "Ingresar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => {
+                    setError(null);
+                    setMessage(null);
+                    setView("forgot");
+                  }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="register" className="mt-4">
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-register">Email</Label>
+                  <Input
+                    id="email-register"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password-register">Contraseña</Label>
+                  <Input
+                    id="password-register"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creando..." : "Crear cuenta"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="forgot" className="mt-4">
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-forgot">Email</Label>
+                  <Input
+                    id="email-forgot"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Enviando..." : "Enviar email de recuperación"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => {
+                    setError(null);
+                    setMessage(null);
+                    setView("login");
+                  }}
+                >
+                  Volver a login
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="updatePassword" className="mt-4">
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nueva contraseña</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Actualizando..." : "Actualizar contraseña"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
