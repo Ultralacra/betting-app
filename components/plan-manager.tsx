@@ -452,7 +452,11 @@ export function PlanManager({
                 value={planName}
                 onChange={(e) => setPlanName(e.target.value)}
               />
-              <Button onClick={handleSavePlan} size="sm" className="w-full sm:w-auto">
+              <Button
+                onClick={handleSavePlan}
+                size="sm"
+                className="w-full sm:w-auto"
+              >
                 <Save className="h-4 w-4 mr-1" />
                 Guardar
               </Button>

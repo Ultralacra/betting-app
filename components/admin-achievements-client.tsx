@@ -54,7 +54,9 @@ export function AdminAchievementsClient() {
   const [editParleyName, setEditParleyName] = useState("");
   const [editLine, setEditLine] = useState("");
   const [editMomio, setEditMomio] = useState("");
-  const [editResult, setEditResult] = useState<"PENDING" | "HIT" | "MISS">("PENDING");
+  const [editResult, setEditResult] = useState<"PENDING" | "HIT" | "MISS">(
+    "PENDING"
+  );
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -99,7 +101,7 @@ export function AdminAchievementsClient() {
         () => {
           toast({ title: "Nuevo logro agregado" });
           void load();
-        },
+        }
       )
       .on(
         "postgres_changes",
@@ -107,7 +109,7 @@ export function AdminAchievementsClient() {
         () => {
           toast({ title: "Logro actualizado" });
           void load();
-        },
+        }
       )
       .on(
         "postgres_changes",
@@ -115,7 +117,7 @@ export function AdminAchievementsClient() {
         () => {
           toast({ title: "Logro eliminado" });
           void load();
-        },
+        }
       )
       .subscribe();
 
@@ -230,7 +232,15 @@ export function AdminAchievementsClient() {
     } finally {
       setSaving(false);
     }
-  }, [editingId, editParleyName, editLine, editMomio, editResult, load, cancelEdit]);
+  }, [
+    editingId,
+    editParleyName,
+    editLine,
+    editMomio,
+    editResult,
+    load,
+    cancelEdit,
+  ]);
 
   const deleteRow = useCallback(
     async (id: string) => {
@@ -278,7 +288,11 @@ export function AdminAchievementsClient() {
               onChange={(e) => setParleyName(e.target.value)}
               placeholder="Nombre del parley"
             />
-            <Input value={line} onChange={(e) => setLine(e.target.value)} placeholder="Línea" />
+            <Input
+              value={line}
+              onChange={(e) => setLine(e.target.value)}
+              placeholder="Línea"
+            />
             <Input
               value={momio}
               onChange={(e) => setMomio(e.target.value)}
@@ -296,7 +310,10 @@ export function AdminAchievementsClient() {
             </Select>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button disabled={!canSubmit || saving} onClick={createAchievement}>
+              <Button
+                disabled={!canSubmit || saving}
+                onClick={createAchievement}
+              >
                 Crear
               </Button>
               <Button variant="outline" disabled={saving} onClick={load}>
@@ -337,7 +354,9 @@ export function AdminAchievementsClient() {
                           {editing ? (
                             <Input
                               value={editParleyName}
-                              onChange={(e) => setEditParleyName(e.target.value)}
+                              onChange={(e) =>
+                                setEditParleyName(e.target.value)
+                              }
                             />
                           ) : (
                             <div className="font-medium">{r.parleyName}</div>
@@ -375,7 +394,9 @@ export function AdminAchievementsClient() {
                                 <SelectValue placeholder="Estado" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="PENDING">Pendiente</SelectItem>
+                                <SelectItem value="PENDING">
+                                  Pendiente
+                                </SelectItem>
                                 <SelectItem value="HIT">Pegó</SelectItem>
                                 <SelectItem value="MISS">No pegó</SelectItem>
                               </SelectContent>
@@ -386,15 +407,15 @@ export function AdminAchievementsClient() {
                                 r.result === "HIT"
                                   ? "default"
                                   : r.result === "MISS"
-                                    ? "destructive"
-                                    : "secondary"
+                                  ? "destructive"
+                                  : "secondary"
                               }
                             >
                               {r.result === "HIT"
                                 ? "Pegó"
                                 : r.result === "MISS"
-                                  ? "No pegó"
-                                  : "Pendiente"}
+                                ? "No pegó"
+                                : "Pendiente"}
                             </Badge>
                           )}
                         </TableCell>
@@ -407,7 +428,11 @@ export function AdminAchievementsClient() {
                           <div className="flex justify-end gap-2">
                             {editing ? (
                               <>
-                                <Button size="sm" disabled={saving} onClick={saveEdit}>
+                                <Button
+                                  size="sm"
+                                  disabled={saving}
+                                  onClick={saveEdit}
+                                >
                                   Guardar
                                 </Button>
                                 <Button

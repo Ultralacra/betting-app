@@ -1,11 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import type { DayResult, BettingConfig, IndividualBet } from "@/lib/betting-types"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import type {
+  DayResult,
+  BettingConfig,
+  IndividualBet,
+} from "@/lib/betting-types";
 import {
   Calendar,
   ChevronLeft,
@@ -19,92 +33,116 @@ import {
   Plus,
   Trash2,
   RotateCcw,
-} from "lucide-react"
+} from "lucide-react";
 
 interface BettingPlanProps {
-  plan: DayResult[]
-  config: BettingConfig
-  onUpdateBet: (dayIndex: number, betId: string, updates: Partial<IndividualBet>) => void
-  onAddBet: (dayIndex: number) => void
-  onRemoveBet: (dayIndex: number, betId: string) => void
+  plan: DayResult[];
+  config: BettingConfig;
+  onUpdateBet: (
+    dayIndex: number,
+    betId: string,
+    updates: Partial<IndividualBet>
+  ) => void;
+  onAddBet: (dayIndex: number) => void;
+  onRemoveBet: (dayIndex: number, betId: string) => void;
 }
 
-export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }: BettingPlanProps) {
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-  const totalPages = Math.ceil(plan.length / itemsPerPage)
+export function BettingPlan({
+  plan,
+  config,
+  onUpdateBet,
+  onAddBet,
+  onRemoveBet,
+}: BettingPlanProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(plan.length / itemsPerPage);
 
-  const [editingBet, setEditingBet] = useState<string | null>(null)
-  const [editStake, setEditStake] = useState<string>("")
-  const [editOdds, setEditOdds] = useState<string>("")
-  const [editDayIndex, setEditDayIndex] = useState<number>(0)
+  const [editingBet, setEditingBet] = useState<string | null>(null);
+  const [editStake, setEditStake] = useState<string>("");
+  const [editOdds, setEditOdds] = useState<string>("");
+  const [editDayIndex, setEditDayIndex] = useState<number>(0);
 
-  const [editingResult, setEditingResult] = useState<string | null>(null)
+  const [editingResult, setEditingResult] = useState<string | null>(null);
 
-  const [openCompletedDay, setOpenCompletedDay] = useState<number | null>(null)
+  const [openCompletedDay, setOpenCompletedDay] = useState<number | null>(null);
 
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentDays = plan.slice(startIndex, endIndex)
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentDays = plan.slice(startIndex, endIndex);
 
   const handleEdit = (bet: IndividualBet, dayIndex: number) => {
-    setEditingBet(bet.id)
-    setEditStake(bet.stake.toString())
-    setEditOdds(bet.odds.toString())
-    setEditDayIndex(dayIndex)
-  }
+    setEditingBet(bet.id);
+    setEditStake(bet.stake.toString());
+    setEditOdds(bet.odds.toString());
+    setEditDayIndex(dayIndex);
+  };
 
   const handleSave = (dayIndex: number, betId: string) => {
-    const stakeAmount = Number.parseFloat(editStake) || 0
-    const oddsAmount = Number.parseFloat(editOdds) || 1.01
-    const day = plan[dayIndex]
-    const stakePercentage = (stakeAmount / day.currentBalance) * 100
+    const stakeAmount = Number.parseFloat(editStake) || 0;
+    const oddsAmount = Number.parseFloat(editOdds) || 1.01;
+    const day = plan[dayIndex];
+    const stakePercentage = (stakeAmount / day.currentBalance) * 100;
 
     onUpdateBet(dayIndex, betId, {
       stakePercentage: stakePercentage,
       odds: oddsAmount,
-    })
-    setEditingBet(null)
-  }
+    });
+    setEditingBet(null);
+  };
 
   const handleCancel = () => {
-    setEditingBet(null)
-  }
+    setEditingBet(null);
+  };
 
-  const handleResult = (dayIndex: number, betId: string, result: "win" | "lose") => {
-    onUpdateBet(dayIndex, betId, { result })
-    setOpenCompletedDay(null)
-  }
+  const handleResult = (
+    dayIndex: number,
+    betId: string,
+    result: "win" | "lose"
+  ) => {
+    onUpdateBet(dayIndex, betId, { result });
+    setOpenCompletedDay(null);
+  };
 
   const handleResetResult = (dayIndex: number, betId: string) => {
-    onUpdateBet(dayIndex, betId, { result: null })
-    setOpenCompletedDay(null)
-  }
+    onUpdateBet(dayIndex, betId, { result: null });
+    setOpenCompletedDay(null);
+  };
 
   const handleShowResultOptions = (betId: string) => {
-    setEditingResult(betId)
-  }
+    setEditingResult(betId);
+  };
 
-  const handleChangeResult = (dayIndex: number, betId: string, newResult: "win" | "lose") => {
-    onUpdateBet(dayIndex, betId, { result: newResult })
-    setEditingResult(null)
-    setOpenCompletedDay(null)
-  }
+  const handleChangeResult = (
+    dayIndex: number,
+    betId: string,
+    newResult: "win" | "lose"
+  ) => {
+    onUpdateBet(dayIndex, betId, { result: newResult });
+    setEditingResult(null);
+    setOpenCompletedDay(null);
+  };
 
   const handleCancelResultEdit = () => {
-    setEditingResult(null)
-  }
+    setEditingResult(null);
+  };
 
   const formatCurrency = (amount: number | undefined | null): string => {
     if (amount === undefined || amount === null || isNaN(amount)) {
-      return "0.00"
+      return "0.00";
     }
-    return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }
+    return amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
-  const startDate = new Date(config.startDate)
-  const endDate = new Date(config.endDate)
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const startDate = new Date(config.startDate);
+  const endDate = new Date(config.endDate);
+  const totalDays =
+    Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    ) + 1;
 
   return (
     <Card>
@@ -134,7 +172,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
               disabled={currentPage === totalPages}
             >
               <ChevronRight className="h-4 w-4" />
@@ -145,74 +185,94 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
       <CardContent>
         <div className="space-y-4">
           {currentDays.map((day, idx) => {
-            const actualIndex = startIndex + idx
-            const isNextDay = day.result === null && (actualIndex === 0 || plan[actualIndex - 1].result === "completed")
-            const canEdit = day.result === null && isNextDay
+            const actualIndex = startIndex + idx;
+            const isNextDay =
+              day.result === null &&
+              (actualIndex === 0 ||
+                plan[actualIndex - 1].result === "completed");
+            const canEdit = day.result === null && isNextDay;
 
-            const bets = day.bets || []
+            const bets = day.bets || [];
 
-            let totalStakeForDay = 0
-            let totalPotentialWinForDay = 0
+            let totalStakeForDay = 0;
+            let totalPotentialWinForDay = 0;
 
             bets.forEach((bet) => {
               if (editingBet === bet.id && editDayIndex === actualIndex) {
-                const currentStake = Number.parseFloat(editStake) || 0
-                const currentOdds = Number.parseFloat(editOdds) || 1
-                totalStakeForDay += currentStake
-                totalPotentialWinForDay += currentStake * (currentOdds - 1)
+                const currentStake = Number.parseFloat(editStake) || 0;
+                const currentOdds = Number.parseFloat(editOdds) || 1;
+                totalStakeForDay += currentStake;
+                totalPotentialWinForDay += currentStake * (currentOdds - 1);
               } else {
-                totalStakeForDay += bet.stake || 0
-                totalPotentialWinForDay += bet.potentialWin || 0
+                totalStakeForDay += bet.stake || 0;
+                totalPotentialWinForDay += bet.potentialWin || 0;
               }
-            })
+            });
 
-            const dayNet = day.result === "completed" ? day.balanceAfterDay - day.currentBalance : 0
+            const dayNet =
+              day.result === "completed"
+                ? day.balanceAfterDay - day.currentBalance
+                : 0;
 
             const dayBody = (
               <>
                 <div className="space-y-2">
                   {bets.map((bet) => {
-                    const isEditing = editingBet === bet.id
-                    const isEditingResultNow = editingResult === bet.id
-                    const betHasResult = bet.result !== null
+                    const isEditing = editingBet === bet.id;
+                    const isEditingResultNow = editingResult === bet.id;
+                    const betHasResult = bet.result !== null;
 
                     const currentStakeValue = isEditing
                       ? editStake === ""
                         ? 0
                         : Number.parseFloat(editStake)
-                      : bet.stake
-                    const currentOddsValue = isEditing ? (editOdds === "" ? 1 : Number.parseFloat(editOdds)) : bet.odds
-                    const currentPercentage = (currentStakeValue / day.currentBalance) * 100
-                    const currentPotentialWin = currentStakeValue * (currentOddsValue - 1)
-                    const currentReturnTotal = currentStakeValue + currentPotentialWin
+                      : bet.stake;
+                    const currentOddsValue = isEditing
+                      ? editOdds === ""
+                        ? 1
+                        : Number.parseFloat(editOdds)
+                      : bet.odds;
+                    const currentPercentage =
+                      (currentStakeValue / day.currentBalance) * 100;
+                    const currentPotentialWin =
+                      currentStakeValue * (currentOddsValue - 1);
+                    const currentReturnTotal =
+                      currentStakeValue + currentPotentialWin;
 
-                    const exceedsBalance = isEditing && currentStakeValue > day.currentBalance
+                    const exceedsBalance =
+                      isEditing && currentStakeValue > day.currentBalance;
 
                     const resolvedDelta = betHasResult
                       ? bet.result === "win"
                         ? currentPotentialWin
                         : -currentStakeValue
-                      : 0
+                      : 0;
 
                     const resolvedBadgeClass =
-                      bet.result === "win" ? "bg-chart-2/20 text-chart-2" : "bg-destructive/20 text-destructive"
+                      bet.result === "win"
+                        ? "bg-chart-2/20 text-chart-2"
+                        : "bg-destructive/20 text-destructive";
 
                     const resolvedRowClass = betHasResult
                       ? bet.result === "win"
                         ? "border-chart-2/40 bg-chart-2/10"
                         : "border-destructive/40 bg-destructive/10"
-                      : "border-border/50 bg-card"
+                      : "border-border/50 bg-card";
 
                     return (
                       <div
                         key={bet.id}
                         className={`flex flex-col gap-3 p-3 rounded-md border sm:flex-row sm:items-center ${
-                          exceedsBalance ? "border-destructive bg-destructive/5" : resolvedRowClass
+                          exceedsBalance
+                            ? "border-destructive bg-destructive/5"
+                            : resolvedRowClass
                         }`}
                       >
                         <div className="w-full flex-1 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">{"Monto a Apostar"}</div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              {"Monto a Apostar"}
+                            </div>
                             {isEditing ? (
                               <div>
                                 <Input
@@ -222,14 +282,22 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                   max={day.currentBalance}
                                   value={editStake}
                                   onChange={(e) => setEditStake(e.target.value)}
-                                  className={`h-8 mb-1 w-full sm:w-24 ${exceedsBalance ? "border-destructive" : ""}`}
+                                  className={`h-8 mb-1 w-full sm:w-24 ${
+                                    exceedsBalance ? "border-destructive" : ""
+                                  }`}
                                   placeholder="$0.00"
                                 />
                                 <div
-                                  className={`text-xs ${exceedsBalance ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                                  className={`text-xs ${
+                                    exceedsBalance
+                                      ? "text-destructive font-medium"
+                                      : "text-muted-foreground"
+                                  }`}
                                 >
                                   {currentStakeValue > 0
-                                    ? `${currentPercentage.toFixed(1)}% de la banca`
+                                    ? `${currentPercentage.toFixed(
+                                        1
+                                      )}% de la banca`
                                     : "0% de la banca"}
                                   {exceedsBalance && " ⚠️ Excede banca"}
                                 </div>
@@ -247,7 +315,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                             )}
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">{"Cuota"}</div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              {"Cuota"}
+                            </div>
                             {isEditing ? (
                               <Input
                                 type="number"
@@ -259,14 +329,22 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                 placeholder="1.00"
                               />
                             ) : (
-                              <div className="font-medium text-card-foreground">{bet.odds?.toFixed(2) || "0.00"}</div>
+                              <div className="font-medium text-card-foreground">
+                                {bet.odds?.toFixed(2) || "0.00"}
+                              </div>
                             )}
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">{"Ganancia Potencial"}</div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              {"Ganancia Potencial"}
+                            </div>
                             <div
                               className={`font-medium ${
-                                isEditing ? "text-primary" : betHasResult && bet.result === "win" ? "text-chart-2" : "text-accent"
+                                isEditing
+                                  ? "text-primary"
+                                  : betHasResult && bet.result === "win"
+                                  ? "text-chart-2"
+                                  : "text-accent"
                               }`}
                             >
                               {"$"}
@@ -274,8 +352,14 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">{"Retorno Total"}</div>
-                            <div className={`font-medium ${isEditing ? "text-primary" : "text-primary"}`}>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              {"Retorno Total"}
+                            </div>
+                            <div
+                              className={`font-medium ${
+                                isEditing ? "text-primary" : "text-primary"
+                              }`}
+                            >
                               {"$"}
                               {formatCurrency(currentReturnTotal)}
                             </div>
@@ -291,12 +375,20 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                 onClick={() => handleSave(actualIndex, bet.id)}
                                 className="h-8 w-8 p-0"
                                 disabled={
-                                  exceedsBalance || currentStakeValue <= 0 || editStake === "" || editOdds === ""
+                                  exceedsBalance ||
+                                  currentStakeValue <= 0 ||
+                                  editStake === "" ||
+                                  editOdds === ""
                                 }
                               >
                                 <Check className="h-4 w-4 text-chart-2" />
                               </Button>
-                              <Button size="sm" variant="ghost" onClick={handleCancel} className="h-8 w-8 p-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleCancel}
+                                className="h-8 w-8 p-0"
+                              >
                                 <X className="h-4 w-4 text-destructive" />
                               </Button>
                             </>
@@ -305,7 +397,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleChangeResult(actualIndex, bet.id, "win")}
+                                onClick={() =>
+                                  handleChangeResult(actualIndex, bet.id, "win")
+                                }
                                 className="h-8 px-3 text-chart-2 hover:text-chart-2 hover:bg-chart-2/20"
                                 title="Marcar como ganada"
                               >
@@ -315,7 +409,13 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleChangeResult(actualIndex, bet.id, "lose")}
+                                onClick={() =>
+                                  handleChangeResult(
+                                    actualIndex,
+                                    bet.id,
+                                    "lose"
+                                  )
+                                }
                                 className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/20"
                                 title="Marcar como perdida"
                               >
@@ -368,7 +468,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleResult(actualIndex, bet.id, "win")}
+                                onClick={() =>
+                                  handleResult(actualIndex, bet.id, "win")
+                                }
                                 className="h-8 px-3 text-chart-2 hover:text-chart-2"
                                 title="Marcar ganada"
                               >
@@ -377,7 +479,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleResult(actualIndex, bet.id, "lose")}
+                                onClick={() =>
+                                  handleResult(actualIndex, bet.id, "lose")
+                                }
                                 className="h-8 px-3 text-destructive hover:text-destructive"
                                 title="Marcar perdida"
                               >
@@ -387,7 +491,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => onRemoveBet(actualIndex, bet.id)}
+                                  onClick={() =>
+                                    onRemoveBet(actualIndex, bet.id)
+                                  }
                                   className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                                   title="Eliminar"
                                 >
@@ -396,29 +502,43 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                               )}
                             </>
                           ) : (
-                            <span className="text-xs text-muted-foreground px-3">-</span>
+                            <span className="text-xs text-muted-foreground px-3">
+                              -
+                            </span>
                           )}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap gap-6">
                     <div>
-                      <div className="text-xs text-muted-foreground">{"Total Apostado"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {"Total Apostado"}
+                      </div>
                       <div
-                        className={`text-lg font-bold ${editingBet && editDayIndex === actualIndex ? "text-primary" : "text-card-foreground"}`}
+                        className={`text-lg font-bold ${
+                          editingBet && editDayIndex === actualIndex
+                            ? "text-primary"
+                            : "text-card-foreground"
+                        }`}
                       >
                         {"$"}
                         {formatCurrency(totalStakeForDay)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">{"Ganancia Total Potencial"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {"Ganancia Total Potencial"}
+                      </div>
                       <div
-                        className={`text-lg font-bold ${editingBet && editDayIndex === actualIndex ? "text-primary" : "text-accent"}`}
+                        className={`text-lg font-bold ${
+                          editingBet && editDayIndex === actualIndex
+                            ? "text-primary"
+                            : "text-accent"
+                        }`}
                       >
                         {"$"}
                         {formatCurrency(totalPotentialWinForDay)}
@@ -427,7 +547,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                   </div>
                   {day.result === "completed" && (
                     <div className="text-left sm:text-right">
-                      <div className="text-xs text-muted-foreground">{"Balance Final del Día"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {"Balance Final del Día"}
+                      </div>
                       <div className="text-xl font-bold text-primary">
                         {"$"}
                         {formatCurrency(day.balanceAfterDay)}
@@ -436,7 +558,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                   )}
                 </div>
               </>
-            )
+            );
 
             const dayHeader = (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -467,7 +589,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                 </div>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                   <div className="text-left sm:text-right">
-                    <div className="text-xs text-muted-foreground">{"Banca Disponible"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {"Banca Disponible"}
+                    </div>
                     <div className="text-lg font-bold text-card-foreground">
                       {"$"}
                       {formatCurrency(day.currentBalance)}
@@ -486,18 +610,20 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                   )}
                 </div>
               </div>
-            )
+            );
 
             const dayContainerClass = `rounded-lg border border-border p-4 transition-colors ${
               isNextDay ? "border-primary bg-primary/5" : ""
-            } ${day.result === "completed" ? "bg-muted/30" : ""}`
+            } ${day.result === "completed" ? "bg-muted/30" : ""}`;
 
             if (day.result === "completed") {
               return (
                 <Collapsible
                   key={day.day}
                   open={openCompletedDay === day.day}
-                  onOpenChange={(open) => setOpenCompletedDay(open ? day.day : null)}
+                  onOpenChange={(open) =>
+                    setOpenCompletedDay(open ? day.day : null)
+                  }
                 >
                   <div className={dayContainerClass}>
                     <CollapsibleTrigger asChild>
@@ -513,11 +639,14 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                 {day.day}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {new Date(day.date).toLocaleDateString("es-ES", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
+                                {new Date(day.date).toLocaleDateString(
+                                  "es-ES",
+                                  {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )}
                               </span>
                             </div>
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
@@ -527,13 +656,24 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <div className="text-xs text-muted-foreground">{"Resultado"}</div>
-                              <div className={`text-sm font-semibold ${dayNet >= 0 ? "text-chart-2" : "text-destructive"}`}>
-                                {dayNet >= 0 ? "+" : "-"}${formatCurrency(Math.abs(dayNet))}
+                              <div className="text-xs text-muted-foreground">
+                                {"Resultado"}
+                              </div>
+                              <div
+                                className={`text-sm font-semibold ${
+                                  dayNet >= 0
+                                    ? "text-chart-2"
+                                    : "text-destructive"
+                                }`}
+                              >
+                                {dayNet >= 0 ? "+" : "-"}$
+                                {formatCurrency(Math.abs(dayNet))}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs text-muted-foreground">{"Balance"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {"Balance"}
+                              </div>
                               <div className="text-sm font-semibold text-card-foreground">
                                 {"$"}
                                 {formatCurrency(day.balanceAfterDay)}
@@ -550,7 +690,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                     </CollapsibleContent>
                   </div>
                 </Collapsible>
-              )
+              );
             }
 
             return (
@@ -558,7 +698,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                 <div className="mb-3">{dayHeader}</div>
                 {dayBody}
               </div>
-            )
+            );
           })}
         </div>
 
@@ -568,7 +708,9 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
               key={page}
               onClick={() => setCurrentPage(page)}
               className={`h-2 w-2 rounded-full transition-colors ${
-                page === currentPage ? "bg-primary" : "bg-muted hover:bg-muted-foreground/50"
+                page === currentPage
+                  ? "bg-primary"
+                  : "bg-muted hover:bg-muted-foreground/50"
               }`}
               aria-label={`Página ${page}`}
             />
@@ -576,5 +718,5 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

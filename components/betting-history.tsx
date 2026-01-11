@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { History, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react"
-import type { DayResult } from "@/lib/betting-types"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { History, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react";
+import type { DayResult } from "@/lib/betting-types";
 
 interface HistoryEvent {
-  type: "bet" | "recharge" | "withdrawal"
-  date: string
-  day?: number
-  amount: number
-  result?: "win" | "lose"
-  balance: number
-  description: string
+  type: "bet" | "recharge" | "withdrawal";
+  date: string;
+  day?: number;
+  amount: number;
+  result?: "win" | "lose";
+  balance: number;
+  description: string;
 }
 
 interface BettingHistoryProps {
-  plan: DayResult[]
-  initialBudget: number
+  plan: DayResult[];
+  initialBudget: number;
 }
 
 export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
-  const events: HistoryEvent[] = []
+  const events: HistoryEvent[] = [];
 
   // Agregar evento inicial
   events.push({
@@ -31,14 +31,15 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
     amount: initialBudget,
     balance: initialBudget,
     description: "Presupuesto inicial",
-  })
+  });
 
   // Agregar apuestas completadas
   plan.forEach((day) => {
     if (day.result === "completed") {
       day.bets?.forEach((bet) => {
         if (bet.result) {
-          const profit = bet.result === "win" ? bet.potentialWin - bet.stake : -bet.stake
+          const profit =
+            bet.result === "win" ? bet.potentialWin - bet.stake : -bet.stake;
           events.push({
             type: "bet",
             date: day.date,
@@ -46,14 +47,18 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
             amount: bet.stake,
             result: bet.result,
             balance: day.balanceAfterDay,
-            description: `Apuesta @ ${bet.odds.toFixed(2)} - ${bet.result === "win" ? "Ganada" : "Perdida"}`,
-          })
+            description: `Apuesta @ ${bet.odds.toFixed(2)} - ${
+              bet.result === "win" ? "Ganada" : "Perdida"
+            }`,
+          });
         }
-      })
+      });
     }
-  })
+  });
 
-  events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  events.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   return (
     <Card>
@@ -77,16 +82,24 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                       event.type === "recharge"
                         ? "bg-blue-500/10"
                         : event.type === "withdrawal"
-                          ? "bg-orange-500/10"
-                          : event.result === "win"
-                            ? "bg-green-500/10"
-                            : "bg-red-500/10"
+                        ? "bg-orange-500/10"
+                        : event.result === "win"
+                        ? "bg-green-500/10"
+                        : "bg-red-500/10"
                     }`}
                   >
-                    {event.type === "recharge" && <Plus className="h-3 w-3 text-blue-500" />}
-                    {event.type === "withdrawal" && <Minus className="h-3 w-3 text-orange-500" />}
-                    {event.type === "bet" && event.result === "win" && <ArrowUp className="h-3 w-3 text-green-500" />}
-                    {event.type === "bet" && event.result === "lose" && <ArrowDown className="h-3 w-3 text-red-500" />}
+                    {event.type === "recharge" && (
+                      <Plus className="h-3 w-3 text-blue-500" />
+                    )}
+                    {event.type === "withdrawal" && (
+                      <Minus className="h-3 w-3 text-orange-500" />
+                    )}
+                    {event.type === "bet" && event.result === "win" && (
+                      <ArrowUp className="h-3 w-3 text-green-500" />
+                    )}
+                    {event.type === "bet" && event.result === "lose" && (
+                      <ArrowDown className="h-3 w-3 text-red-500" />
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -97,7 +110,12 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                         {event.day && ` - Día ${event.day}`}
                       </p>
                       {event.result && (
-                        <Badge variant={event.result === "win" ? "default" : "destructive"} className="text-xs">
+                        <Badge
+                          variant={
+                            event.result === "win" ? "default" : "destructive"
+                          }
+                          className="text-xs"
+                        >
                           {event.result === "win" ? "W" : "L"}
                         </Badge>
                       )}
@@ -111,13 +129,15 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                       event.type === "bet" && event.result === "win"
                         ? "text-green-500"
                         : event.type === "bet" && event.result === "lose"
-                          ? "text-red-500"
-                          : "text-foreground"
+                        ? "text-red-500"
+                        : "text-foreground"
                     }`}
                   >
                     ${event.amount.toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Balance: ${event.balance.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Balance: ${event.balance.toFixed(2)}
+                  </p>
                 </div>
               </div>
             ))}
@@ -125,5 +145,5 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
         </ScrollArea>
       </CardContent>
     </Card>
-  )
+  );
 }
