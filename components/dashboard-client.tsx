@@ -53,6 +53,11 @@ import {
 type MembershipTier = "FREE" | "PRO";
 type MembershipDuration = "1M" | "2M" | "3M" | "1Y" | "LIFETIME";
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 type UserSummary = {
   id: string;
   email: string | null;
@@ -273,6 +278,10 @@ export function DashboardClient({
 
   const [userSummary, setUserSummary] = useState(user);
 
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [pwaBusy, setPwaBusy] = useState(false);
+
   const [membershipModalOpen, setMembershipModalOpen] = useState(false);
   const [membershipModalText, setMembershipModalText] = useState<{
     title: string;
@@ -287,6 +296,134 @@ export function DashboardClient({
   useEffect(() => {
     setUserSummary(user);
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    };
+  }, []);
+
+  const ensureServiceWorker = useCallback(async () => {
+    if (typeof window === "undefined") return null;
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      return reg;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const installAndEnableNotifications = useCallback(async () => {
+    if (pwaBusy) return;
+    setPwaBusy(true);
+    try {
+      const reg = await ensureServiceWorker();
+      if (!reg) {
+        toast({
+          variant: "destructive",
+          title: "No compatible",
+          description: "Este navegador no soporta Service Worker (PWA).",
+        });
+        return;
+      }
+
+      // 1) Prompt de instalación (si está disponible)
+      if (installPrompt) {
+        await installPrompt.prompt();
+        await installPrompt.userChoice.catch(() => null);
+        setInstallPrompt(null);
+      }
+
+      // 2) Notificaciones
+      if (!("Notification" in window)) {
+        toast({
+          variant: "destructive",
+          title: "No compatible",
+          description: "Este navegador no soporta notificaciones.",
+        });
+        return;
+      }
+
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") {
+        toast({
+          variant: "destructive",
+          title: "Permiso denegado",
+          description: "No se pudieron activar las notificaciones.",
+        });
+        return;
+      }
+
+      // 3) Suscripción Push
+      const keyRes = await fetch("/api/push/vapid-public-key", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!keyRes.ok) {
+        const body = (await keyRes.json().catch(() => null)) as any;
+        throw new Error(body?.details ?? "No se pudo obtener la llave VAPID");
+      }
+
+      const keyJson = (await keyRes.json()) as { publicKey: string };
+      const existing = await reg.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyJson.publicKey),
+        }));
+
+      const subRes = await fetch("/api/push/subscribe", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription }),
+      });
+
+      if (!subRes.ok) {
+        const body = (await subRes.json().catch(() => null)) as any;
+        throw new Error(body?.error ?? "No se pudo guardar la suscripción");
+      }
+
+      toast({
+        title: "Listo",
+        description: "App instalada y notificaciones activadas.",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "No se pudo completar";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: msg,
+      });
+    } finally {
+      setPwaBusy(false);
+    }
+  }, [ensureServiceWorker, installPrompt, pwaBusy]);
 
   useEffect(() => {
     if (!userSummary?.id) return;
@@ -1145,6 +1282,14 @@ export function DashboardClient({
                   ({headerDaysLeft})
                 </span>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={installAndEnableNotifications}
+                disabled={pwaBusy}
+              >
+                {pwaBusy ? "Configurando…" : "Instalar app"}
+              </Button>
               <QuickCalculator />
               <Button variant="outline" size="sm" onClick={toggleDarkMode}>
                 {isDarkMode ? (

@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { isAdminUser } from "@/lib/admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
+import webpush from "web-push";
 
 type AchievementRow = {
   id: string;
@@ -151,6 +152,47 @@ export async function POST(req: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Notificación push (best-effort)
+  try {
+    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const subject = process.env.VAPID_SUBJECT ?? "mailto:admin@example.com";
+    if (publicKey && privateKey) {
+      webpush.setVapidDetails(subject, publicKey, privateKey);
+      const { data: subs } = await admin
+        .from("push_subscriptions")
+        .select("endpoint,p256dh,auth");
+
+      const payload = JSON.stringify({
+        title: "Nuevo logro",
+        body: `${parleyName} • ${line} • ${momio}`,
+        url: "/dashboard",
+      });
+
+      await Promise.all(
+        (subs ?? []).map(async (s: any) => {
+          const subscription = {
+            endpoint: s.endpoint,
+            keys: { p256dh: s.p256dh, auth: s.auth },
+          };
+          try {
+            await webpush.sendNotification(subscription as any, payload);
+          } catch (e: any) {
+            const statusCode = e?.statusCode;
+            if (statusCode === 404 || statusCode === 410) {
+              await admin
+                .from("push_subscriptions")
+                .delete()
+                .eq("endpoint", s.endpoint);
+            }
+          }
+        })
+      );
+    }
+  } catch {
+    // ignore
   }
 
   return NextResponse.json({ ok: true });
