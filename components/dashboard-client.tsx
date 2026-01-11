@@ -1255,7 +1255,7 @@ export function DashboardClient({
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <TrendingUp className="h-6 w-6 text-primary-foreground" />
@@ -1270,7 +1270,7 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
               <Badge
                 variant={membershipBadge.variant}
                 className={membershipBadge.className}
@@ -1397,12 +1397,22 @@ export function DashboardClient({
           <div className="lg:col-span-2">
             {config && plan.length > 0 ? (
               <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="dashboard">Panel</TabsTrigger>
-                  <TabsTrigger value="plan">Plan</TabsTrigger>
-                  <TabsTrigger value="analytics">Análisis</TabsTrigger>
-                  <TabsTrigger value="history">Historial</TabsTrigger>
-                  <TabsTrigger value="achievements">Logros</TabsTrigger>
+                <TabsList className="w-full max-w-full justify-start overflow-x-auto">
+                  <TabsTrigger value="dashboard" className="flex-none">
+                    Panel
+                  </TabsTrigger>
+                  <TabsTrigger value="plan" className="flex-none">
+                    Plan
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="flex-none">
+                    Análisis
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex-none">
+                    Historial
+                  </TabsTrigger>
+                  <TabsTrigger value="achievements" className="flex-none">
+                    Logros
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="dashboard" className="space-y-6 mt-6">

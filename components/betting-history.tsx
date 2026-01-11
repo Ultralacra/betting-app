@@ -64,12 +64,12 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] pr-4">
+        <ScrollArea className="h-75 pr-4">
           <div className="space-y-3">
             {events.map((event, index) => (
               <div
                 key={index}
-                className="flex items-start justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                className="flex flex-col gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="flex items-start gap-3 flex-1">
                   <div
@@ -105,7 +105,7 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p
                     className={`text-sm font-bold ${
                       event.type === "bet" && event.result === "win"

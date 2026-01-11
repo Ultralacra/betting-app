@@ -30,7 +30,7 @@ export function DailySummary({ plan }: DailySummaryProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Banca Disponible</p>
             <p className="text-xl font-bold text-primary">${todayPlan.currentBalance.toFixed(2)}</p>

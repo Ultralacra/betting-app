@@ -109,7 +109,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
               {totalPages}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-start sm:self-auto">
             <Button
               variant="outline"
               size="sm"
@@ -206,11 +206,11 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                     return (
                       <div
                         key={bet.id}
-                        className={`flex items-center gap-3 p-3 rounded-md border ${
+                        className={`flex flex-col gap-3 p-3 rounded-md border sm:flex-row sm:items-center ${
                           exceedsBalance ? "border-destructive bg-destructive/5" : resolvedRowClass
                         }`}
                       >
-                        <div className="flex-1 grid grid-cols-4 gap-4">
+                        <div className="w-full flex-1 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                           <div>
                             <div className="text-xs text-muted-foreground mb-1">{"Monto a Apostar"}</div>
                             {isEditing ? (
@@ -222,7 +222,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                   max={day.currentBalance}
                                   value={editStake}
                                   onChange={(e) => setEditStake(e.target.value)}
-                                  className={`w-24 h-8 mb-1 ${exceedsBalance ? "border-destructive" : ""}`}
+                                  className={`h-8 mb-1 w-full sm:w-24 ${exceedsBalance ? "border-destructive" : ""}`}
                                   placeholder="$0.00"
                                 />
                                 <div
@@ -255,7 +255,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                                 min="1.01"
                                 value={editOdds}
                                 onChange={(e) => setEditOdds(e.target.value)}
-                                className="w-20 h-8"
+                                className="h-8 w-full sm:w-20"
                                 placeholder="1.00"
                               />
                             ) : (
@@ -282,7 +282,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 self-end sm:self-auto">
                           {isEditing ? (
                             <>
                               <Button
@@ -404,8 +404,8 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                   })}
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-                  <div className="flex gap-6">
+                <div className="mt-3 pt-3 border-t border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap gap-6">
                     <div>
                       <div className="text-xs text-muted-foreground">{"Total Apostado"}</div>
                       <div
@@ -426,7 +426,7 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                     </div>
                   </div>
                   {day.result === "completed" && (
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <div className="text-xs text-muted-foreground">{"Balance Final del Día"}</div>
                       <div className="text-xl font-bold text-primary">
                         {"$"}
@@ -439,8 +439,8 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
             )
 
             const dayHeader = (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex flex-col">
                     <span className="text-lg font-bold text-card-foreground">
                       {"Día "}
@@ -465,8 +465,8 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <div className="text-left sm:text-right">
                     <div className="text-xs text-muted-foreground">{"Banca Disponible"}</div>
                     <div className="text-lg font-bold text-card-foreground">
                       {"$"}
@@ -474,7 +474,12 @@ export function BettingPlan({ plan, config, onUpdateBet, onAddBet, onRemoveBet }
                     </div>
                   </div>
                   {canEdit && (
-                    <Button size="sm" variant="outline" onClick={() => onAddBet(actualIndex)} className="h-8">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onAddBet(actualIndex)}
+                      className="h-8 w-full sm:w-auto"
+                    >
                       <Plus className="h-4 w-4 mr-1" />
                       {"Agregar Apuesta"}
                     </Button>

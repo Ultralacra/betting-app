@@ -232,7 +232,7 @@ export function AdminUsersClient() {
               : `Total: ${users.length} · FREE: ${counts.free} · PRO: ${counts.pro}`}
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

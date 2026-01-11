@@ -445,14 +445,14 @@ export function PlanManager({
         {currentConfig && (
           <div className="space-y-2">
             <Label htmlFor="planName">Guardar Plan Actual</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 id="planName"
                 placeholder="Nombre del plan..."
                 value={planName}
                 onChange={(e) => setPlanName(e.target.value)}
               />
-              <Button onClick={handleSavePlan} size="sm">
+              <Button onClick={handleSavePlan} size="sm" className="w-full sm:w-auto">
                 <Save className="h-4 w-4 mr-1" />
                 Guardar
               </Button>
@@ -461,7 +461,7 @@ export function PlanManager({
         )}
 
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               className="flex-1 bg-transparent"
@@ -472,7 +472,7 @@ export function PlanManager({
             </Button>
             <Button
               variant="outline"
-              className="bg-transparent"
+              className="bg-transparent w-full sm:w-auto"
               onClick={() => setImportOpen(true)}
             >
               <Upload className="h-4 w-4 mr-2" />

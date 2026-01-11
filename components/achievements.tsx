@@ -158,11 +158,11 @@ export function Achievements() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-1">
               <CardTitle>Logros de hoy</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">
                 Vistos: {shownCount}/{dailyLimit}
               </Badge>

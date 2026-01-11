@@ -295,7 +295,7 @@ export function AdminAchievementsClient() {
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button disabled={!canSubmit || saving} onClick={createAchievement}>
                 Crear
               </Button>
@@ -317,7 +317,7 @@ export function AdminAchievementsClient() {
           ) : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin logros aún.</p>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
