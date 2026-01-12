@@ -4,10 +4,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { toast } from "@/hooks/use-toast";
 
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -31,7 +42,9 @@ type AchievementRow = {
   parleyName: string;
   line: string;
   momio: string;
+  description: string;
   result: "PENDING" | "HIT" | "MISS";
+  likesCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -45,18 +58,26 @@ export function AdminAchievementsClient() {
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState<AchievementRow[]>([]);
 
+  const [expandedDescriptions, setExpandedDescriptions] = useState<
+    Record<string, boolean>
+  >({});
+
   const [parleyName, setParleyName] = useState("");
   const [line, setLine] = useState("");
   const [momio, setMomio] = useState("");
+  const [description, setDescription] = useState("");
   const [result, setResult] = useState<"PENDING" | "HIT" | "MISS">("PENDING");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editParleyName, setEditParleyName] = useState("");
   const [editLine, setEditLine] = useState("");
   const [editMomio, setEditMomio] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [editResult, setEditResult] = useState<"PENDING" | "HIT" | "MISS">(
     "PENDING"
   );
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -119,6 +140,13 @@ export function AdminAchievementsClient() {
           void load();
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "achievement_likes" },
+        () => {
+          void load();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -146,6 +174,7 @@ export function AdminAchievementsClient() {
           parleyName: parleyName.trim(),
           line: line.trim(),
           momio: momio.trim(),
+          description: description.trim(),
           result,
         }),
       });
@@ -158,6 +187,7 @@ export function AdminAchievementsClient() {
       setParleyName("");
       setLine("");
       setMomio("");
+      setDescription("");
       setResult("PENDING");
       toast({ title: "Logro creado" });
       await load();
@@ -171,14 +201,16 @@ export function AdminAchievementsClient() {
     } finally {
       setSaving(false);
     }
-  }, [canSubmit, parleyName, line, momio, result, load]);
+  }, [canSubmit, parleyName, line, momio, description, result, load]);
 
   const startEdit = useCallback((row: AchievementRow) => {
     setEditingId(row.id);
     setEditParleyName(row.parleyName);
     setEditLine(row.line);
     setEditMomio(row.momio);
+    setEditDescription(row.description ?? "");
     setEditResult(row.result);
+    setEditModalOpen(true);
   }, []);
 
   const cancelEdit = useCallback(() => {
@@ -186,7 +218,9 @@ export function AdminAchievementsClient() {
     setEditParleyName("");
     setEditLine("");
     setEditMomio("");
+    setEditDescription("");
     setEditResult("PENDING");
+    setEditModalOpen(false);
   }, []);
 
   const saveEdit = useCallback(async () => {
@@ -210,6 +244,7 @@ export function AdminAchievementsClient() {
           parleyName: editParleyName.trim(),
           line: editLine.trim(),
           momio: editMomio.trim(),
+          description: editDescription.trim(),
           result: editResult,
         }),
       });
@@ -237,6 +272,7 @@ export function AdminAchievementsClient() {
     editParleyName,
     editLine,
     editMomio,
+    editDescription,
     editResult,
     load,
     cancelEdit,
@@ -275,6 +311,13 @@ export function AdminAchievementsClient() {
     [load]
   );
 
+  const toggleDescription = useCallback((id: string) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -282,21 +325,24 @@ export function AdminAchievementsClient() {
           <CardTitle>Logros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-6">
             <Input
               value={parleyName}
               onChange={(e) => setParleyName(e.target.value)}
               placeholder="Nombre del parley"
+              className="md:col-span-2"
             />
             <Input
               value={line}
               onChange={(e) => setLine(e.target.value)}
               placeholder="Línea"
+              className="md:col-span-2"
             />
             <Input
               value={momio}
               onChange={(e) => setMomio(e.target.value)}
               placeholder="Momio (ej: -110, +120)"
+              className="md:col-span-1"
             />
             <Select value={result} onValueChange={(v) => setResult(v as any)}>
               <SelectTrigger>
@@ -308,6 +354,13 @@ export function AdminAchievementsClient() {
                 <SelectItem value="MISS">No pegó</SelectItem>
               </SelectContent>
             </Select>
+
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descripción (opcional)"
+              className="md:col-span-6"
+            />
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
@@ -338,8 +391,11 @@ export function AdminAchievementsClient() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[320px]">Parley</TableHead>
-                    <TableHead>Detalle</TableHead>
+                    <TableHead className="min-w-55">Parley</TableHead>
+                    <TableHead className="min-w-45">Línea</TableHead>
+                    <TableHead className="w-30">Momio</TableHead>
+                    <TableHead className="min-w-[320px]">Descripción</TableHead>
+                    <TableHead className="w-24 text-center">Likes</TableHead>
                     <TableHead className="w-40">Estado</TableHead>
                     <TableHead className="w-52">Creado</TableHead>
                     <TableHead className="w-56 text-right">Acciones</TableHead>
@@ -347,77 +403,78 @@ export function AdminAchievementsClient() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => {
-                    const editing = editingId === r.id;
+                    const desc = r.description?.trim() ?? "";
+                    const isExpanded = Boolean(expandedDescriptions[r.id]);
+                    const isLong = desc.length >= 140 || desc.includes("\n");
+
                     return (
                       <TableRow key={r.id}>
                         <TableCell className="align-top">
-                          {editing ? (
-                            <Input
-                              value={editParleyName}
-                              onChange={(e) =>
-                                setEditParleyName(e.target.value)
-                              }
-                            />
-                          ) : (
-                            <div className="font-medium">{r.parleyName}</div>
-                          )}
+                          <div className="font-medium wrap-break-word">
+                            {r.parleyName}
+                          </div>
                         </TableCell>
 
                         <TableCell className="align-top">
-                          {editing ? (
-                            <div className="grid gap-2 md:grid-cols-2">
-                              <Input
-                                value={editLine}
-                                onChange={(e) => setEditLine(e.target.value)}
-                                placeholder="Línea"
-                              />
-                              <Input
-                                value={editMomio}
-                                onChange={(e) => setEditMomio(e.target.value)}
-                                placeholder="Momio"
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              Línea: {r.line} · Momio: {r.momio}
-                            </div>
-                          )}
+                          <div className="text-sm text-muted-foreground wrap-break-word">
+                            {r.line}
+                          </div>
                         </TableCell>
 
                         <TableCell className="align-top">
-                          {editing ? (
-                            <Select
-                              value={editResult}
-                              onValueChange={(v) => setEditResult(v as any)}
-                            >
-                              <SelectTrigger className="w-36">
-                                <SelectValue placeholder="Estado" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="PENDING">
-                                  Pendiente
-                                </SelectItem>
-                                <SelectItem value="HIT">Pegó</SelectItem>
-                                <SelectItem value="MISS">No pegó</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <Badge variant="outline">{r.momio}</Badge>
+                        </TableCell>
+
+                        <TableCell className="align-top">
+                          {desc ? (
+                            <div className="space-y-1">
+                              <div
+                                className={cn(
+                                  "text-sm text-muted-foreground max-w-130 wrap-break-word whitespace-pre-wrap",
+                                  isLong && !isExpanded
+                                    ? "max-h-16 overflow-hidden"
+                                    : "max-h-none"
+                                )}
+                              >
+                                {desc}
+                              </div>
+                              {isLong ? (
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs"
+                                  onClick={() => toggleDescription(r.id)}
+                                >
+                                  {isExpanded ? "Ver menos" : "Ver más"}
+                                </Button>
+                              ) : null}
+                            </div>
                           ) : (
-                            <Badge
-                              variant={
-                                r.result === "HIT"
-                                  ? "default"
-                                  : r.result === "MISS"
-                                  ? "destructive"
-                                  : "secondary"
-                              }
-                            >
-                              {r.result === "HIT"
-                                ? "Pegó"
+                            <div className="text-sm text-muted-foreground">—</div>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="align-top text-center">
+                          <Badge variant="outline">{r.likesCount ?? 0}</Badge>
+                        </TableCell>
+
+                        <TableCell className="align-top">
+                          <Badge
+                            variant={
+                              r.result === "HIT"
+                                ? "default"
                                 : r.result === "MISS"
-                                ? "No pegó"
-                                : "Pendiente"}
-                            </Badge>
-                          )}
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {r.result === "HIT"
+                              ? "Pegó"
+                              : r.result === "MISS"
+                              ? "No pegó"
+                              : "Pendiente"}
+                          </Badge>
                         </TableCell>
 
                         <TableCell className="align-top text-sm text-muted-foreground">
@@ -426,44 +483,22 @@ export function AdminAchievementsClient() {
 
                         <TableCell className="align-top">
                           <div className="flex justify-end gap-2">
-                            {editing ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  disabled={saving}
-                                  onClick={saveEdit}
-                                >
-                                  Guardar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={saving}
-                                  onClick={cancelEdit}
-                                >
-                                  Cancelar
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={saving}
-                                  onClick={() => startEdit(r)}
-                                >
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={saving}
-                                  onClick={() => deleteRow(r.id)}
-                                >
-                                  Eliminar
-                                </Button>
-                              </>
-                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={saving}
+                              onClick={() => startEdit(r)}
+                            >
+                              Ver / Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={saving}
+                              onClick={() => deleteRow(r.id)}
+                            >
+                              Eliminar
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -475,6 +510,71 @@ export function AdminAchievementsClient() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editModalOpen} onOpenChange={(open) => !open && cancelEdit()}>
+        <DialogContent className="sm:max-w-180">
+          <DialogHeader>
+            <DialogTitle>Detalle del logro</DialogTitle>
+            <DialogDescription>
+              Ajusta la info aquí para mantener la tabla limpia.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Parley</div>
+                <Input
+                  value={editParleyName}
+                  onChange={(e) => setEditParleyName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Estado</div>
+                <Select value={editResult} onValueChange={(v) => setEditResult(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">Pendiente</SelectItem>
+                    <SelectItem value="HIT">Pegó</SelectItem>
+                    <SelectItem value="MISS">No pegó</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Línea</div>
+                <Input value={editLine} onChange={(e) => setEditLine(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Momio</div>
+                <Input value={editMomio} onChange={(e) => setEditMomio(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Descripción</div>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Descripción (opcional)"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" disabled={saving} onClick={cancelEdit}>
+              Cancelar
+            </Button>
+            <Button disabled={saving} onClick={saveEdit}>
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

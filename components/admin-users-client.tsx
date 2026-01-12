@@ -19,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { AdminMetrics } from "@/components/admin/AdminMetrics";
+import {
+  UserFilters,
+  applyUserFilters,
+  type UserFiltersState,
+} from "@/components/admin/UserFilters";
 
 type MembershipTier = "FREE" | "PRO";
 type MembershipDuration = "1M" | "2M" | "3M" | "1Y" | "LIFETIME";
@@ -217,20 +224,49 @@ export function AdminUsersClient() {
     );
   };
 
+  // Filters state
+  const [filters, setFilters] = useState<UserFiltersState>({
+    search: "",
+    tier: "all",
+    sort: "email",
+  });
+
+  const filteredUsers = useMemo(() => {
+    return applyUserFilters(users, filters);
+  }, [users, filters]);
+
   return (
     <div className="space-y-6">
-      <Card>
+      {/* Metrics Dashboard */}
+      <AdminMetrics
+        totalUsers={users.length}
+        proUsers={counts.pro}
+        freeUsers={counts.free}
+        activeToday={0}
+      />
+
+      <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Usuarios</CardTitle>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Gestión de Usuarios</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {loading ? "Cargando..." : `${filteredUsers.length} de ${users.length} usuarios`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                PRO: {counts.pro}
+              </Badge>
+              <Badge variant="outline">FREE: {counts.free}</Badge>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="text-sm text-muted-foreground">
-            {loading
-              ? "Cargando…"
-              : `Total: ${users.length} · FREE: ${counts.free} · PRO: ${counts.pro}`}
-          </div>
+          {/* Search and Filters */}
+          <UserFilters filters={filters} onFiltersChange={setFilters} />
 
           <div className="rounded-md border overflow-x-auto">
             <Table>
@@ -247,7 +283,7 @@ export function AdminUsersClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((u) =>
+                {filteredUsers.map((u) =>
                   (() => {
                     const pending = pendingByUser[u.id] ?? {
                       tier: u.membershipTier,

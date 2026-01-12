@@ -146,6 +146,15 @@ begin
 
     -- Backfill defensivo si había filas sin estado
     execute 'update public.achievements set result = ''PENDING'' where result is null';
+
+    -- Descripción del logro (si vienes de una tabla vieja sin description)
+    if not exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public' and table_name = 'achievements' and column_name = 'description'
+    ) then
+      execute 'alter table public.achievements add column description text';
+    end if;
   end if;
 end;
 $$;
@@ -293,6 +302,58 @@ begin
         and tablename = 'achievements'
     ) then
       execute 'alter publication supabase_realtime add table public.achievements';
+    end if;
+  end if;
+end;
+$$;
+
+-- Likes de logros (1 like por usuario por logro)
+create table if not exists public.achievement_likes (
+  id uuid primary key default gen_random_uuid(),
+  achievement_id uuid not null references public.achievements(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  constraint achievement_likes_unique unique (achievement_id, user_id)
+);
+
+create index if not exists achievement_likes_achievement_id_idx
+  on public.achievement_likes(achievement_id);
+
+create index if not exists achievement_likes_user_id_idx
+  on public.achievement_likes(user_id);
+
+alter table public.achievement_likes enable row level security;
+
+drop policy if exists "achievement_likes_select_authenticated" on public.achievement_likes;
+create policy "achievement_likes_select_authenticated" on public.achievement_likes
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists "achievement_likes_insert_own" on public.achievement_likes;
+create policy "achievement_likes_insert_own" on public.achievement_likes
+  for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "achievement_likes_delete_own" on public.achievement_likes;
+create policy "achievement_likes_delete_own" on public.achievement_likes
+  for delete
+  to authenticated
+  using (auth.uid() = user_id);
+
+-- Habilitar Realtime para achievement_likes (si existe la publicación)
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'achievement_likes'
+    ) then
+      execute 'alter publication supabase_realtime add table public.achievement_likes';
     end if;
   end if;
 end;

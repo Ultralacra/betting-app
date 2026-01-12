@@ -12,9 +12,15 @@ type AchievementRow = {
   parleyName: string;
   line: string;
   momio: string;
+  description: string;
   result: "PENDING" | "HIT" | "MISS";
+  likesCount: number;
   createdAt: string;
   updatedAt: string;
+};
+
+type AchievementLikeRow = {
+  achievement_id: string;
 };
 
 type AchievementResult = "PENDING" | "HIT" | "MISS";
@@ -78,7 +84,7 @@ export async function GET() {
 
   const { data, error } = await admin
     .from("achievements")
-    .select("id,parley_name,line,momio,result,created_at,updated_at")
+    .select("id,parley_name,line,momio,description,result,created_at,updated_at")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -95,12 +101,35 @@ export async function GET() {
   const rows: AchievementRow[] = (data ?? []).map((r: any) => ({
     id: r.id,
     parleyName: r.parley_name ?? r.title,
-    line: r.line ?? (r.description ?? ""),
+    line: r.line ?? "",
     momio: r.momio ?? "",
+    description: r.description ?? "",
     result: normalizeResult(r.result),
+    likesCount: 0,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }));
+
+  const ids = rows.map((r) => r.id).filter(Boolean);
+  if (ids.length > 0) {
+    const { data: likesAll, error: likesAllError } = await admin
+      .from("achievement_likes")
+      .select("achievement_id")
+      .in("achievement_id", ids);
+
+    if (likesAllError) {
+      return NextResponse.json({ error: likesAllError.message }, { status: 500 });
+    }
+
+    const counts: Record<string, number> = {};
+    for (const row of (likesAll ?? []) as AchievementLikeRow[]) {
+      counts[row.achievement_id] = (counts[row.achievement_id] ?? 0) + 1;
+    }
+
+    for (const r of rows) {
+      r.likesCount = counts[r.id] ?? 0;
+    }
+  }
 
   return NextResponse.json({ achievements: rows });
 }
@@ -115,12 +144,13 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as
-    | { parleyName?: string; line?: string; momio?: string; result?: AchievementResult }
+    | { parleyName?: string; line?: string; momio?: string; description?: string; result?: AchievementResult }
     | null;
 
   const parleyName = body?.parleyName?.trim();
   const line = body?.line?.trim();
   const momio = body?.momio?.trim();
+  const description = body?.description?.trim();
   const result = normalizeResult(body?.result);
 
   if (!parleyName || !line || !momio) {
@@ -146,6 +176,7 @@ export async function POST(req: Request) {
     parley_name: parleyName,
     line,
     momio,
+    description: description && description.length > 0 ? description : null,
     result,
     created_by: authz.userId,
   });
@@ -208,13 +239,14 @@ export async function PATCH(req: Request) {
   }
 
   const body = (await req.json().catch(() => null)) as
-    | { id?: string; parleyName?: string; line?: string; momio?: string; result?: AchievementResult }
+    | { id?: string; parleyName?: string; line?: string; momio?: string; description?: string; result?: AchievementResult }
     | null;
 
   const id = body?.id;
   const parleyName = body?.parleyName?.trim();
   const line = body?.line?.trim();
   const momio = body?.momio?.trim();
+  const description = body?.description?.trim();
   const result = normalizeResult(body?.result);
 
   if (!id || !parleyName || !line || !momio) {
@@ -240,6 +272,7 @@ export async function PATCH(req: Request) {
     parley_name: parleyName,
     line,
     momio,
+    description: description && description.length > 0 ? description : null,
     result,
   };
 

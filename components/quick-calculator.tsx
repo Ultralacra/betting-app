@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Calculator } from "lucide-react"
 
-export function QuickCalculator() {
+export function QuickCalculator({ trigger }: { trigger?: React.ReactNode }) {
   const [bankroll, setBankroll] = useState<string>("")
   const [stake, setStake] = useState<string>("")
   const [odds, setOdds] = useState<string>("")
@@ -25,10 +25,12 @@ export function QuickCalculator() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Calculator className="h-4 w-4 mr-2" />
-          Calculadora
-        </Button>
+        {trigger || (
+          <Button variant="outline" size="sm">
+            <Calculator className="h-4 w-4 mr-2" />
+            Calculadora
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

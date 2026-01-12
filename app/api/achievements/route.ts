@@ -8,8 +8,14 @@ type AchievementRow = {
   parley_name: string;
   line: string;
   momio: string;
+  description: string | null;
   result: "PENDING" | "HIT" | "MISS";
   created_at: string;
+};
+
+type AchievementLikeRow = {
+  achievement_id: string;
+  user_id: string;
 };
 
 function getTodayUtcRange() {
@@ -85,7 +91,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("achievements")
-    .select("id,parley_name,line,momio,result,created_at")
+    .select("id,parley_name,line,momio,description,result,created_at")
     .gte("created_at", startIso)
     .lt("created_at", endIso)
     .order("created_at", { ascending: false })
@@ -97,7 +103,39 @@ export async function GET(req: NextRequest) {
     return res;
   }
 
-  const res = NextResponse.json({ achievements: (data ?? []) as AchievementRow[], dailyLimit });
+  const achievements = (data ?? []) as AchievementRow[];
+  const ids = achievements.map((a) => a.id).filter(Boolean);
+
+  // Likes (conteos + si el usuario actual ya dio like)
+  let likesCountByAchievement: Record<string, number> = {};
+  let likedByMeSet = new Set<string>();
+
+  if (ids.length > 0) {
+    const { data: likesAll, error: likesAllError } = await supabase
+      .from("achievement_likes")
+      .select("achievement_id,user_id")
+      .in("achievement_id", ids);
+
+    if (likesAllError) {
+      const res = NextResponse.json({ error: likesAllError.message }, { status: 500 });
+      cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+      return res;
+    }
+
+    for (const row of (likesAll ?? []) as AchievementLikeRow[]) {
+      likesCountByAchievement[row.achievement_id] =
+        (likesCountByAchievement[row.achievement_id] ?? 0) + 1;
+      if (row.user_id === user.id) likedByMeSet.add(row.achievement_id);
+    }
+  }
+
+  const enriched = achievements.map((a) => ({
+    ...a,
+    likesCount: likesCountByAchievement[a.id] ?? 0,
+    likedByMe: likedByMeSet.has(a.id),
+  }));
+
+  const res = NextResponse.json({ achievements: enriched, dailyLimit });
   cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
   return res;
 }

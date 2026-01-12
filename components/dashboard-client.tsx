@@ -3,11 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { TrendingUp, Moon, Sun, LogOut, User as UserIcon } from "lucide-react";
+import { TrendingUp, Moon, Sun, LogOut, User as UserIcon, ChevronDown, Calculator, Zap, GitCompare, Wrench } from "lucide-react";
+import { useTheme } from "next-themes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { BettingForm } from "@/components/betting-form";
 import { BettingPlan } from "@/components/betting-plan";
-import { BettingStats } from "@/components/betting-stats";
 import { BettingChart } from "@/components/betting-chart";
 import { BettingAnalytics } from "@/components/betting-analytics";
 import { BettingHistory } from "@/components/betting-history";
@@ -15,6 +23,17 @@ import { PlanManager } from "@/components/plan-manager";
 import { QuickCalculator } from "@/components/quick-calculator";
 import { Achievements } from "@/components/achievements";
 import { DailySummary } from "@/components/daily-summary";
+
+// New components
+import { StatsCards } from "@/components/dashboard/StatsCards";
+import { StreakIndicator } from "@/components/dashboard/StreakIndicator";
+import { GoalsWidget } from "@/components/dashboard/GoalsWidget";
+import { BankrollAlert } from "@/components/dashboard/BankrollAlert";
+import { BottomNav } from "@/components/dashboard/BottomNav";
+import { ParlayCalculator } from "@/components/parlay-calculator";
+import { PlanComparison } from "@/components/plan-comparison";
+import { SimulationMode } from "@/components/simulation-mode";
+import { OddsHistory } from "@/components/odds-history";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -630,9 +649,14 @@ export function DashboardClient({
   const [currentBalance, setCurrentBalance] = useState<number>(
     initialBettingData.currentBalance ?? initialConfig?.initialBudget ?? 0
   );
-  const [isDarkMode, setIsDarkMode] = useState(
-    (initialBettingData.theme ?? "light") === "dark"
-  );
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === "dark";
+
+  useEffect(() => {
+    if (initialBettingData.theme === "dark" || initialBettingData.theme === "light") {
+        setTheme(initialBettingData.theme);
+    }
+  }, []);
 
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
   const [savedPlansLoaded, setSavedPlansLoaded] = useState(false);
@@ -644,6 +668,7 @@ export function DashboardClient({
   }, [activeSavedPlan]);
   const savedPlansCount = savedPlans.length;
   const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [planModalMode, setPlanModalMode] = useState<PlanModalMode>("first");
   const [editingPlan, setEditingPlan] = useState<SavedPlan | null>(null);
   const [firstPlanName, setFirstPlanName] = useState("Mi primer plan");
@@ -677,9 +702,7 @@ export function DashboardClient({
     return false;
   };
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDarkMode);
-  }, [isDarkMode]);
+  // Theme managed globally
 
   useEffect(() => {
     let isMounted = true;
@@ -744,7 +767,7 @@ export function DashboardClient({
       setCurrentBalance(0);
       setActiveSavedPlan(null);
       try {
-        await persistBettingData({
+        await persistBettingDataNow({
           config: null,
           plan: [],
           currentBalance: 0,
@@ -1116,16 +1139,7 @@ export function DashboardClient({
     });
   };
 
-  const toggleDarkMode = async () => {
-    const next = !isDarkMode;
-    setIsDarkMode(next);
-    await persistBettingDataNow({
-      config,
-      plan,
-      currentBalance,
-      theme: next ? "dark" : "light",
-    });
-  };
+
 
   const handleConfigSubmit = async (newConfig: BettingConfig) => {
     const generatedPlan = generatePlan(newConfig, newConfig.initialBudget);
@@ -1290,32 +1304,62 @@ export function DashboardClient({
               >
                 {pwaBusy ? "Configurando…" : "Instalar app"}
               </Button>
-              <QuickCalculator />
-              <Button variant="outline" size="sm" onClick={toggleDarkMode}>
-                {isDarkMode ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
-              <Button asChild variant="outline" size="sm" className="gap-2">
-                <Link
-                  href="/profile"
-                  className="inline-flex items-center gap-2"
-                >
-                  <UserIcon className="h-4 w-4" />
-                  <span>Perfil</span>
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={logout}
-                className="gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Cerrar sesión</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Wrench className="h-4 w-4" />
+                    <span className="hidden sm:inline">Herramientas</span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Utilidades</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <QuickCalculator trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Calculator className="mr-2 h-4 w-4" />
+                      <span>Calculadora Rápida</span>
+                    </DropdownMenuItem>
+                  } />
+                  <ParlayCalculator trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                      <span>Calculadora Parlays</span>
+                    </DropdownMenuItem>
+                  } />
+                  <PlanComparison plans={savedPlans} trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <GitCompare className="mr-2 h-4 w-4" />
+                      <span>Comparar Planes</span>
+                    </DropdownMenuItem>
+                  } />
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <UserIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">Cuenta</span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer">
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Perfil</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -1396,33 +1440,54 @@ export function DashboardClient({
 
           <div className="lg:col-span-2">
             {config && plan.length > 0 ? (
-              <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="w-full max-w-full justify-start overflow-x-auto">
-                  <TabsTrigger value="dashboard" className="flex-none">
-                    Panel
-                  </TabsTrigger>
-                  <TabsTrigger value="plan" className="flex-none">
-                    Plan
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="flex-none">
-                    Análisis
-                  </TabsTrigger>
-                  <TabsTrigger value="history" className="flex-none">
-                    Historial
-                  </TabsTrigger>
-                  <TabsTrigger value="achievements" className="flex-none">
-                    Logros
-                  </TabsTrigger>
-                </TabsList>
+              <>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="w-full max-w-full justify-start overflow-x-auto scrollbar-hide">
+                    <TabsTrigger value="dashboard" className="flex-none">
+                      Panel
+                    </TabsTrigger>
+                    <TabsTrigger value="plan" className="flex-none">
+                      Plan
+                    </TabsTrigger>
+                    <TabsTrigger value="analytics" className="flex-none">
+                      Análisis
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="flex-none">
+                      Historial
+                    </TabsTrigger>
+                    <TabsTrigger value="achievements" className="flex-none">
+                      Logros
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="dashboard" className="space-y-6 mt-6">
-                  <DailySummary plan={plan} />
-                  <BettingStats
-                    plan={plan}
-                    config={config}
-                    currentBalance={currentBalance}
-                  />
-                </TabsContent>
+                  <TabsContent value="dashboard" className="space-y-6 mt-6">
+                    <BankrollAlert
+                      currentBalance={currentBalance}
+                      initialBudget={config.initialBudget}
+                    />
+                    <SimulationMode config={config} plan={plan} />
+
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <DailySummary plan={plan} />
+                        <StreakIndicator plan={plan} size="lg" showStats />
+                      </div>
+
+                      <StatsCards
+                        plan={plan}
+                        config={config}
+                        currentBalance={currentBalance}
+                      />
+
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <GoalsWidget
+                          currentBalance={currentBalance}
+                          initialBudget={config.initialBudget}
+                        />
+                        <OddsHistory plan={plan} />
+                      </div>
+                    </div>
+                  </TabsContent>
 
                 <TabsContent value="plan" className="space-y-6 mt-6">
                   <BettingPlan
@@ -1460,7 +1525,9 @@ export function DashboardClient({
                 <TabsContent value="achievements" className="space-y-6 mt-6">
                   <Achievements />
                 </TabsContent>
-              </Tabs>
+                </Tabs>
+                <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+              </>
             ) : (
               <div className="rounded-lg border border-border bg-card p-12 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
