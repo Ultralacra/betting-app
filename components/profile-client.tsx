@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CreditCard, LogOut, User as UserIcon } from "lucide-react";
+import { CreditCard, LogOut, User as UserIcon, ShieldCheck, Mail, Lock } from "lucide-react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseAuthErrorToSpanish } from "@/lib/supabase/errors";
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type MembershipTier = "FREE" | "PRO";
 type MembershipDuration = "1M" | "2M" | "3M" | "1Y" | "LIFETIME";
@@ -44,6 +45,16 @@ function daysLeftLabel(
   const diff = expiresAt.getTime() - Date.now();
   const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   return `${days} días`;
+}
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 type Profile = {
@@ -75,13 +86,21 @@ export function ProfileClient({ profile }: Props) {
     lifetime: boolean;
   } | null>(null);
 
+  // States for profile editing
+  const [name, setName] = useState(profile.name ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     setLiveProfile(profile);
+    if (profile.name) setName(profile.name);
   }, [profile]);
 
   useEffect(() => {
     if (!liveProfile?.id) return;
 
+    // Use a unique key for tracking
     const seenKey = `bt.membership.seenUpdatedAt:${liveProfile.id}`;
 
     const channel = supabase
@@ -103,6 +122,9 @@ export function ProfileClient({ profile }: Props) {
           };
 
           const updatedAt = next.updated_at ?? null;
+          // Sólo mostramos el modal si el evento ocurrió hace menos de 1 minuto
+          const isRecent = updatedAt && (Date.now() - new Date(updatedAt).getTime() < 60000);
+          
           const lastSeen =
             typeof window !== "undefined"
               ? localStorage.getItem(seenKey)
@@ -124,7 +146,17 @@ export function ProfileClient({ profile }: Props) {
             membershipExpiresAt: nextExpiresAt,
           }));
 
-          if (updatedAt && updatedAt !== lastSeen) {
+          // Detectar cambio REAL en la membresía
+          const tierChanged = nextTier !== liveProfile.membershipTier;
+          const durationChanged = nextDuration !== liveProfile.membershipDuration;
+          
+          const prevExpires = liveProfile.membershipExpiresAt?.getTime() ?? 0;
+          const newExpires = nextExpiresAt?.getTime() ?? 0;
+          const expiresChanged = prevExpires !== newExpires;
+
+          const isMembershipUpdate = tierChanged || durationChanged || expiresChanged;
+
+          if (updatedAt && isRecent && isMembershipUpdate) {
             const durLabel = membershipDurationLabel(nextDuration);
             const description =
               nextTier !== "PRO"
@@ -161,34 +193,26 @@ export function ProfileClient({ profile }: Props) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [supabase, liveProfile?.id]);
+  }, [supabase, liveProfile?.id, liveProfile.membershipDuration, liveProfile.membershipTier, liveProfile.membershipExpiresAt]);
 
   const membershipBadge = useMemo(() => {
     const tier = liveProfile.membershipTier;
     if (tier !== "PRO") {
       return {
         variant: "secondary" as const,
-        className: "",
-        text: "Plan: FREE",
+        className: "bg-muted text-muted-foreground border-border px-3 py-1",
+        text: "Plan FREE",
       };
     }
 
     const dur = liveProfile.membershipDuration ?? null;
     const label = membershipDurationLabel(dur);
 
-    // Solo tokens del tema (sin colores hardcode).
-    if (dur === "LIFETIME") {
-      return {
-        variant: "default" as const,
-        className: "ring-1 ring-ring/30",
-        text: `Plan: PRO${label ? ` (${label})` : ""}`,
-      };
-    }
-
     return {
-      variant: "secondary" as const,
-      className: "bg-accent text-accent-foreground",
-      text: `Plan: PRO${label ? ` (${label})` : ""}`,
+      variant: "default" as const,
+      // Green color for success/gain, no shadow, pulse animation
+      className: "bg-emerald-500 hover:bg-emerald-600 text-white border-0 px-3 py-1 animate-pulse-soft !shadow-none",
+      text: `PRO${label ? ` · ${label}` : ""}`,
     };
   }, [liveProfile.membershipDuration, liveProfile.membershipTier]);
 
@@ -204,11 +228,6 @@ export function ProfileClient({ profile }: Props) {
     liveProfile.membershipTier,
   ]);
 
-  const [name, setName] = useState(profile.name ?? "");
-  const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
   const saveProfile = async () => {
     setMessage(null);
     setLoading(true);
@@ -222,8 +241,8 @@ export function ProfileClient({ profile }: Props) {
       setMessage(supabaseAuthErrorToSpanish(error));
       return;
     }
-    setMessage("Perfil actualizado");
-    router.refresh();
+    setMessage("Perfil actualizado correctamente");
+    router.refresh(); 
   };
 
   const changePassword = async () => {
@@ -244,7 +263,7 @@ export function ProfileClient({ profile }: Props) {
     }
 
     setNewPassword("");
-    setMessage("Contraseña actualizada");
+    setMessage("Contraseña actualizada correctamente");
   };
 
   const logout = async () => {
@@ -253,151 +272,218 @@ export function ProfileClient({ profile }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b border-border/40 backdrop-blur-md bg-background/80 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <UserIcon className="h-5 w-5" />
-              <h1 className="text-xl font-bold text-foreground">Perfil</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={membershipBadge.variant}
-                className={membershipBadge.className}
-              >
-                {membershipBadge.text}
-              </Badge>
-              {headerDaysLeft && (
-                <span className="text-xs text-muted-foreground">
-                  ({headerDaysLeft})
+            <Link href="/dashboard" className="flex items-center gap-3 group">
+              <div className="p-2 rounded-xl bg-primary/5 text-foreground group-hover:bg-primary/10 transition-colors">
+                <UserIcon className="h-5 w-5" />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight">Mi Perfil</h1>
+            </Link>
+            
+            <div className="flex items-center gap-4">
+              {/* User Avatar & Name using neutral colors */}
+              <div className="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full bg-muted/40 border border-border/50">
+                <Avatar className="h-8 w-8 border border-border/50">
+                  <AvatarImage src="" /> 
+                  <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
+                    {getInitials(liveProfile.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground">
+                  {liveProfile.name || "Usuario"}
                 </span>
-              )}
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard">Volver</Link>
+              </div>
+
+              <Button asChild variant="ghost" size="sm" className="hidden sm:flex btn-hover-effect">
+                <Link href="/dashboard">Volver al Dashboard</Link>
               </Button>
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={logout}
-                className="gap-2"
+                className="gap-2 btn-hover-effect rounded-full px-4 !shadow-none"
               >
                 <LogOut className="h-4 w-4" />
-                <span>Cerrar sesión</span>
+                <span className="hidden sm:inline">Cerrar Sesión</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Dialog
-          open={membershipModalOpen}
-          onOpenChange={setMembershipModalOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {membershipModalText?.title ?? "Membresía"}
-              </DialogTitle>
-              <DialogDescription>
-                {membershipModalText?.description ?? ""}
-              </DialogDescription>
-            </DialogHeader>
-            {membershipModalRange && (
-              <div className="text-sm text-muted-foreground">
-                Desde: {membershipModalRange.from.toLocaleDateString()} · Hasta:{" "}
-                {membershipModalRange.lifetime || !membershipModalRange.to
-                  ? "Lifetime"
-                  : membershipModalRange.to.toLocaleDateString()}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 animate-fade-in">
+        <div className="w-full max-w-2xl grid gap-8">
+          
+          <Dialog
+            open={membershipModalOpen}
+            onOpenChange={setMembershipModalOpen}
+          >
+            <DialogContent className="glass-card border-primary/20 !shadow-none">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-primary">
+                  {membershipModalText?.title ?? "Membresía"}
+                </DialogTitle>
+                <DialogDescription className="text-lg text-foreground/80">
+                  {membershipModalText?.description ?? ""}
+                </DialogDescription>
+              </DialogHeader>
+              {membershipModalRange && (
+                <div className="p-4 rounded-lg bg-background/50 border border-border/50 text-sm text-muted-foreground flex flex-col gap-1">
+                  <div className="flex justify-between">
+                    <span>Inicio:</span>
+                    <span className="font-medium text-foreground">{membershipModalRange.from.toLocaleDateString()}</span>
+                  </div>
+                   <div className="flex justify-between">
+                    <span>Vencimiento:</span>
+                    <span className="font-medium text-foreground">
+                       {membershipModalRange.lifetime || !membershipModalRange.to
+                      ? "De por vida (Lifetime)"
+                      : membershipModalRange.to.toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-4">
+                <Badge
+                  variant={membershipBadge.variant}
+                  className={membershipBadge.className}
+                >
+                  {membershipBadge.text.replace("Plan: ", "")}
+                </Badge>
+                <Button onClick={() => setMembershipModalOpen(false)} className="btn-hover-effect !shadow-none">
+                  ¡Entendido!
+                </Button>
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <Badge
-                variant={membershipBadge.variant}
-                className={membershipBadge.className}
-              >
-                {membershipBadge.text.replace("Plan: ", "")}
-              </Badge>
-              <Button onClick={() => setMembershipModalOpen(false)}>
-                Entendido
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
 
-        <div className="grid gap-6 max-w-xl">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cuenta</CardTitle>
+          {/* User Info Card - Removed glass-card specific class to avoid blue tints if any, using standard bg-background or similar */}
+          <Card className="bg-background border border-border/50 overflow-hidden !shadow-none">
+             {/* Gradient line at top - keeping it subtle or neutral if needed, but user said 'gain colors green'. This separation line can correspond to gain/success if we want? I'll keep it standard primary-accent for now, or match gain color? sticking to primary for neutrality unless requested */}
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 to-primary/40 opacity-50" />
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                 <div className="p-2.5 rounded-full bg-primary/5 text-primary">
+                   <ShieldCheck className="h-6 w-6" />
+                 </div>
+                Información Personal
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={profile.email ?? ""} readOnly />
-              </div>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                 <div className="space-y-2">
+                  <Label className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Email
+                  </Label>
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50 font-mono text-sm">
+                    {profile.email ?? "No registrado"}
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <div className="flex gap-2">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label className="text-muted-foreground font-medium flex items-center gap-2">
+                    <UserIcon className="w-4 h-4" /> Nombre
+                  </Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    className="bg-background/50 focus:bg-background transition-colors !shadow-none"
+                    placeholder="Tu nombre completo"
                   />
-                  <Button onClick={saveProfile} disabled={loading}>
-                    Guardar
+                </div>
+              </div>
+              
+               <div className="pt-2 flex justify-end">
+                  <Button 
+                    onClick={saveProfile} 
+                    disabled={loading} 
+                    className="btn-hover-effect min-w-[120px] !shadow-none"
+                  >
+                    Guardar Cambios
+                  </Button>
+               </div>
+
+              <div className="border-t border-border/50 pt-6 space-y-4">
+                <Label className="text-muted-foreground font-medium flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> Seguridad
+                  </Label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    type="password"
+                    placeholder="Nueva contraseña (mín. 6 caracteres)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                     className="bg-background/50 focus:bg-background transition-colors flex-1 !shadow-none"
+                  />
+                  <Button
+                    onClick={changePassword}
+                    variant="outline"
+                    className="btn-hover-effect whitespace-nowrap !shadow-none"
+                    disabled={loading}
+                  >
+                    Actualizar Contraseña
                   </Button>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Nueva contraseña</Label>
-                <Input
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Button
-                  onClick={changePassword}
-                  variant="outline"
-                  className="w-full bg-transparent"
-                  disabled={loading}
-                >
-                  Actualizar contraseña
-                </Button>
-              </div>
-
               {message && (
-                <p className="text-sm text-muted-foreground">{message}</p>
+                <div className="p-3 rounded-lg bg-primary/5 text-primary text-sm font-medium text-center animate-fade-in border border-primary/10">
+                  {message}
+                </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Membership Card */}
+          <Card className="bg-background border border-border/50 relative overflow-hidden group !shadow-none">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Membresía
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="p-2.5 rounded-full bg-primary/5 text-primary">
+                    <CreditCard className="h-6 w-6" />
+                  </div>
+                  Estado de Membresía
+                </div>
+                <Badge
+                  variant={membershipBadge.variant}
+                  className={`${membershipBadge.className} text-sm py-1 px-3 !shadow-none`}
+                >
+                  {membershipBadge.text}
+                </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-sm">
-                Plan:{" "}
-                <span className="font-medium">
-                  {liveProfile.membershipTier}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {liveProfile.membershipTier !== "PRO"
-                  ? "FREE"
-                  : liveProfile.membershipDuration === "LIFETIME"
-                  ? "Lifetime"
-                  : liveProfile.membershipExpiresAt
-                  ? `Vence: ${new Date(
-                      liveProfile.membershipExpiresAt
-                    ).toLocaleDateString()}`
-                  : "PRO"}
+            <CardContent className="relative z-10">
+              <div className="grid sm:grid-cols-2 gap-6 mt-2">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Plan Actual</div>
+                  <div className={`text-2xl font-bold ${liveProfile.membershipTier === "PRO" ? "text-emerald-500" : "text-foreground"}`}>
+                    {liveProfile.membershipTier === "PRO" ? "Pro Member" : "Free Plan"}
+                  </div>
+                </div>
+                
+                {liveProfile.membershipTier === "PRO" && (
+                   <div className="space-y-1">
+                     <div className="text-sm text-muted-foreground">Tiempo Restante</div>
+                     <div className="text-2xl font-bold text-foreground flex items-baseline gap-2">
+                       {headerDaysLeft ?? "∞"} 
+                       {headerDaysLeft && <span className="text-sm font-normal text-muted-foreground">días</span>}
+                     </div>
+                   </div>
+                )}
+
+                <div className="col-span-2 text-sm text-muted-foreground/80 mt-2 p-3 rounded-lg bg-muted/20 border border-border/30">
+                  {liveProfile.membershipTier !== "PRO"
+                    ? "Actualiza a PRO para desbloquear todas las funcionalidades avanzadas y límites extendidos."
+                    : liveProfile.membershipDuration === "LIFETIME"
+                    ? "¡Tienes acceso de por vida! Disfruta sin límites."
+                    : liveProfile.membershipExpiresAt
+                    ? `Tu suscripción vence el ${new Date(liveProfile.membershipExpiresAt).toLocaleDateString()}.`
+                    : "Suscripción activa."}
+                </div>
               </div>
             </CardContent>
           </Card>

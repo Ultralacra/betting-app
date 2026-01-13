@@ -278,6 +278,38 @@ export function AdminAchievementsClient() {
     cancelEdit,
   ]);
 
+  const updateStatus = useCallback(
+    async (id: string, newStatus: "PENDING" | "HIT" | "MISS") => {
+      // Feedback inmediato (optimista o loading)
+      toast({ title: "Actualizando estado..." });
+      try {
+        const res = await fetch("/api/admin/achievements", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            result: newStatus,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        toast({ title: "Estado actualizado correctamente" });
+        await load();
+      } catch (e) {
+        toast({
+          title: "Error al actualizar",
+          description: String(e),
+          variant: "destructive",
+        });
+      }
+    },
+    [load]
+  );
+
   const deleteRow = useCallback(
     async (id: string) => {
       if (!confirm("¿Eliminar este logro?")) return;
@@ -391,14 +423,14 @@ export function AdminAchievementsClient() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-55">Parley</TableHead>
-                    <TableHead className="min-w-45">Línea</TableHead>
-                    <TableHead className="w-30">Momio</TableHead>
-                    <TableHead className="min-w-[320px]">Descripción</TableHead>
-                    <TableHead className="w-24 text-center">Likes</TableHead>
-                    <TableHead className="w-40">Estado</TableHead>
-                    <TableHead className="w-52">Creado</TableHead>
-                    <TableHead className="w-56 text-right">Acciones</TableHead>
+                    <TableHead className="w-auto min-w-[120px]">Parley</TableHead>
+                    <TableHead className="w-auto">Línea</TableHead>
+                    <TableHead className="w-auto">Momio</TableHead>
+                    <TableHead className="w-full min-w-[200px]">Descripción</TableHead>
+                    <TableHead className="w-20 text-center">Likes</TableHead>
+                    <TableHead className="w-[140px]">Estado</TableHead>
+                    <TableHead className="w-[140px]">Creado</TableHead>
+                    <TableHead className="w-[140px] text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -460,21 +492,30 @@ export function AdminAchievementsClient() {
                         </TableCell>
 
                         <TableCell className="align-top">
-                          <Badge
-                            variant={
-                              r.result === "HIT"
-                                ? "default"
-                                : r.result === "MISS"
-                                ? "destructive"
-                                : "secondary"
+                          <Select
+                            value={r.result}
+                            onValueChange={(val) =>
+                              updateStatus(r.id, val as "PENDING" | "HIT" | "MISS")
                             }
                           >
-                            {r.result === "HIT"
-                              ? "Pegó"
-                              : r.result === "MISS"
-                              ? "No pegó"
-                              : "Pendiente"}
-                          </Badge>
+                            <SelectTrigger
+                              className={cn(
+                                "h-8 w-[130px]",
+                                r.result === "HIT" &&
+                                  "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+                                r.result === "MISS" &&
+                                  "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+                                r.result === "PENDING" && "text-muted-foreground"
+                              )}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PENDING">Pendiente</SelectItem>
+                              <SelectItem value="HIT">Pegó</SelectItem>
+                              <SelectItem value="MISS">No pegó</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
 
                         <TableCell className="align-top text-sm text-muted-foreground">

@@ -16,8 +16,9 @@
   --secondary-foreground: oklch(0.23 0.02 106);
   --muted: oklch(0.95 0.01 106);
   --muted-foreground: oklch(0.5 0.01 106);
-  --accent: oklch(0.72 0.15 60);
-  --accent-foreground: oklch(0.15 0.02 106);
+  /* Success Green to replace Violet */
+  --accent: oklch(0.623 0.214 145);
+  --accent-foreground: oklch(0.98 0.005 106);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.9 0.01 106);
@@ -52,8 +53,9 @@
   --secondary-foreground: oklch(0.98 0.005 106);
   --muted: oklch(0.26 0.01 106);
   --muted-foreground: oklch(0.6 0.01 106);
-  --accent: oklch(0.72 0.15 60);
-  --accent-foreground: oklch(0.15 0.02 106);
+  /* Success Green */
+  --accent: oklch(0.623 0.214 145);
+  --accent-foreground: oklch(0.98 0.005 106);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.26 0.01 106);
@@ -195,9 +197,28 @@
   }
 
   /* ... existing code ... */
-  /* Badge glow for PRO */
-  .badge-glow {
-    /* box-shadow removed */
+  /* Premium Badge Styles */
+  .badge-pro {
+    background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  }
+
+  .badge-free {
+    @apply bg-muted text-muted-foreground border-border;
+  }
+
+  /* Button Hover Override */
+  .btn-hover-effect {
+    transition: all 0.3s ease;
+  }
+
+  .btn-hover-effect:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    filter: brightness(1.1);
   }
 
   /* Gradient backgrounds */

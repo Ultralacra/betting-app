@@ -23,9 +23,10 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
   const handleSelect = (range: DateRange | undefined) => {
     onChange(range)
-    if (range?.from && range?.to) {
-      setIsOpen(false)
-    }
+    // Keep open to allow easier adjustments or if the user clicks 'from' then thinks about 'to'
+    // if (range?.from && range?.to) {
+    //   setIsOpen(false)
+    // }
   }
 
   return (

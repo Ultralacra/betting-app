@@ -22,17 +22,33 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  // Asegura que exista el registro del usuario en app_users.
-  await supabase.from("app_users").upsert(
-    {
-      user_id: user.id,
-      email: user.email ?? null,
-      display_name:
-        user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
-      role: isAdminUser(user.id) ? "ADMIN" : "MEMBER",
-    },
-    { onConflict: "user_id" }
-  );
+  // Verificar si el usuario ya existe y si los datos son actuales para evitar updates innecesarios.
+  const { data: existingUser } = await supabase
+    .from("app_users")
+    .select("user_id, display_name, role")
+    .eq("user_id", user.id)
+    .single();
+
+  const newDisplayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+  const newRole = isAdminUser(user.id) ? "ADMIN" : "MEMBER";
+
+  // Solo hacemos upsert si no existe o si hay cambios reales en los datos básicos.
+  // Evitamos actualizar 'updated_at' innecesariamente para no disparar el modal en el cliente.
+  if (
+    !existingUser ||
+    existingUser.display_name !== newDisplayName ||
+    existingUser.role !== newRole
+  ) {
+    await supabase.from("app_users").upsert(
+      {
+        user_id: user.id,
+        email: user.email ?? null,
+        display_name: newDisplayName,
+        role: newRole,
+      },
+      { onConflict: "user_id" }
+    );
+  }
 
   const { data: appUserRow } = await supabase
     .from("app_users")

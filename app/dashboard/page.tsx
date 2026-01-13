@@ -56,6 +56,7 @@ export default async function DashboardPage() {
     membershipExpiresAt: appUserRow?.membership_expires_at
       ? new Date(appUserRow.membership_expires_at)
       : null,
+    role: (isAdminUser(userId) ? "ADMIN" : "MEMBER") as "ADMIN" | "MEMBER",
   };
 
   const { data: state, error } = await supabase

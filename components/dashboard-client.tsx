@@ -84,6 +84,7 @@ type UserSummary = {
   membershipTier: MembershipTier;
   membershipDuration?: MembershipDuration | null;
   membershipExpiresAt: Date | null;
+  role?: "ADMIN" | "MEMBER";
 } | null;
 
 function membershipDurationLabel(
@@ -1292,9 +1293,17 @@ export function DashboardClient({
                 {membershipBadge.text}
               </Badge>
               {headerDaysLeft && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground mr-2">
                   ({headerDaysLeft})
                 </span>
+              )}
+              {userSummary?.role === "ADMIN" && (
+                <Button variant="outline" size="sm" asChild className="gap-2">
+                  <Link href="/admin">
+                    <Wrench className="h-4 w-4" />
+                    Admin
+                  </Link>
+                </Button>
               )}
               <Button
                 variant="outline"

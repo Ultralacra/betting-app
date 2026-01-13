@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, CheckCircle2, Mail } from "lucide-react";
+import confetti from "canvas-confetti";
 import {
   Card,
   CardContent,
@@ -15,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { supabaseAuthErrorToSpanish } from "@/lib/supabase/errors";
 
@@ -31,6 +39,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -128,10 +137,19 @@ export default function LoginPage() {
         return;
       }
 
-      setMessage(
-        "Cuenta creada. Si tu proyecto requiere confirmación, revisa tu correo."
-      );
-      setView("login");
+      // Celebración de éxito con modal y confetti
+      setShowSuccessModal(true);
+      if (typeof window !== "undefined") {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#10b981', '#34d399', '#059669'], // Tonos esmeralda
+          disableForReducedMotion: true
+        });
+      }
+      
+      setView("login"); 
       return;
     }
 
@@ -181,6 +199,32 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md text-center border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+          <DialogHeader className="flex flex-col items-center gap-4 pt-4">
+             <div className="rounded-full bg-emerald-100 p-4 ring-8 ring-emerald-50 animate-bounce-slow">
+               <CheckCircle2 className="h-12 w-12 text-emerald-600" /> 
+             </div>
+            <DialogTitle className="text-2xl font-bold text-center">¡Cuenta creada con éxito!</DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Estás a un paso de comenzar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 flex flex-col items-center gap-4 text-center">
+             <div className="bg-muted p-4 rounded-lg flex items-center gap-3 w-full justify-center border border-border/50">
+                <Mail className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm">Hemos enviado un correo de confirmación a <span className="font-semibold text-foreground">{email}</span></span>
+             </div>
+             <p className="text-sm text-muted-foreground">
+               Por favor revisa tu bandeja de entrada (y spam) para verificar tu cuenta y acceder a la plataforma.
+             </p>
+             <Button onClick={() => setShowSuccessModal(false)} className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white" size="lg">
+               Entendido, ir al login
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center gap-3">

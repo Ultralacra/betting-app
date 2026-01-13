@@ -37,14 +37,21 @@ export function GoalsWidget({
   const [newGoalName, setNewGoalName] = useState("");
   const [newGoalAmount, setNewGoalAmount] = useState("");
   const [newGoalDeadline, setNewGoalDeadline] = useState("");
+  const [newGoalOdds, setNewGoalOdds] = useState("");
 
   const handleAddGoal = () => {
     if (!newGoalName.trim() || !newGoalAmount || !newGoalDeadline) return;
 
-    addGoal(newGoalName.trim(), parseFloat(newGoalAmount), newGoalDeadline);
+    addGoal(
+        newGoalName.trim(), 
+        parseFloat(newGoalAmount), 
+        newGoalDeadline, 
+        newGoalOdds ? parseFloat(newGoalOdds) : undefined
+    );
     setNewGoalName("");
     setNewGoalAmount("");
     setNewGoalDeadline("");
+    setNewGoalOdds("");
     setIsOpen(false);
   };
 
@@ -100,6 +107,21 @@ export function GoalsWidget({
                     value={newGoalAmount}
                     onChange={(e) => setNewGoalAmount(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="goal-odds">Cuota estimada (Opcional)</Label>
+                    <Input
+                        id="goal-odds"
+                        type="number"
+                        step="0.01"
+                        min="1.01"
+                        placeholder="Ej: 1.80"
+                        value={newGoalOdds}
+                        onChange={(e) => setNewGoalOdds(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Cuota promedio con la que planeas jugar para esta meta.
+                    </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="goal-deadline">Fecha límite</Label>
@@ -167,7 +189,7 @@ function GoalItem({
       className={cn(
         "rounded-lg border p-3 space-y-2 transition-colors",
         goal.achieved
-          ? "border-chart-2/30 bg-chart-2/5"
+          ? "border-emerald-500/30 bg-emerald-500/5"
           : "border-border/50"
       )}
     >
@@ -175,18 +197,25 @@ function GoalItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {goal.achieved ? (
-              <Trophy className="h-4 w-4 text-chart-2 flex-shrink-0" />
+              <Trophy className="h-4 w-4 text-emerald-500 flex-shrink-0" />
             ) : (
               <Target className="h-4 w-4 text-primary flex-shrink-0" />
             )}
             <span className="font-medium text-sm truncate">{goal.name}</span>
           </div>
-          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            {goal.achieved ? (
-              <span className="text-chart-2">¡Meta alcanzada!</span>
-            ) : (
-              <span>{goal.daysLeft} días restantes</span>
+          <div className="flex flex-col gap-0.5 mt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {goal.achieved ? (
+                <span className="text-emerald-500">¡Meta alcanzada!</span>
+                ) : (
+                <span>{goal.daysLeft} días restantes</span>
+                )}
+            </div>
+            {goal.estimatedOdds && (
+                 <div className="text-xs text-muted-foreground/80">
+                    Estrategia: Cuota {goal.estimatedOdds.toFixed(2)}
+                 </div>
             )}
           </div>
         </div>
@@ -209,7 +238,7 @@ function GoalItem({
           <span
             className={cn(
               "font-medium",
-              goal.achieved ? "text-chart-2" : "text-primary"
+              goal.achieved ? "text-emerald-500" : "text-primary"
             )}
           >
             {Math.round(goal.progress)}%
@@ -217,7 +246,7 @@ function GoalItem({
         </div>
         <Progress
           value={goal.progress}
-          className={cn("h-2", goal.achieved && "bg-chart-2/20")}
+          className={cn("h-2", goal.achieved && "bg-emerald-500/20")}
         />
       </div>
     </div>

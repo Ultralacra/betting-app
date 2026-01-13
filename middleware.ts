@@ -47,10 +47,17 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // La raíz no tiene contenido: redirige según sesión.
-  if (pathname === "/") {
+  // La raíz ('/') ahora muestra la Landing Page.
+  // Si hay usuario logueado, lo mandamos al dashboard para que no vea la landing.
+  if (pathname === "/" && user) {
     const url = request.nextUrl.clone()
-    url.pathname = user ? "/dashboard" : "/login"
+    url.pathname = "/dashboard"
     return NextResponse.redirect(url)
+  }
+
+  // Si no hay usuario y está en raíz, permitimos que pase (se muestra Landing Page)
+  if (pathname === "/") {
+    return response;
   }
 
   if (

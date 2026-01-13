@@ -10,6 +10,7 @@ export interface FinancialGoal {
     name: string;
     targetAmount: number;
     deadline: string; // ISO date string
+    estimatedOdds?: number;
     createdAt: string;
 }
 
@@ -79,12 +80,13 @@ export function useGoals(currentBalance: number, initialBudget: number) {
     }, [goals, currentBalance, initialBudget]);
 
     const addGoal = useCallback(
-        (name: string, targetAmount: number, deadline: string) => {
+        (name: string, targetAmount: number, deadline: string, estimatedOdds?: number) => {
             const newGoal: FinancialGoal = {
                 id: crypto.randomUUID?.() ?? String(Date.now()),
                 name,
                 targetAmount,
                 deadline,
+                estimatedOdds,
                 createdAt: new Date().toISOString(),
             };
 
