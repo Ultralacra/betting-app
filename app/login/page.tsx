@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TrendingUp, CheckCircle2, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  TrendingUp,
+  CheckCircle2,
+  Mail,
+  Eye,
+  EyeOff,
+  Loader2,
+} from "lucide-react";
 import confetti from "canvas-confetti";
 
 // SVG del logo de Google
@@ -43,7 +50,9 @@ function LoadingSpinner() {
         <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
         <TrendingUp className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
       </div>
-      <p className="text-sm text-muted-foreground animate-pulse">Iniciando sesión...</p>
+      <p className="text-sm text-muted-foreground animate-pulse">
+        Iniciando sesión...
+      </p>
     </div>
   );
 }
@@ -129,7 +138,6 @@ export default function LoginPage() {
     }
   };
 
-
   useEffect(() => {
     let isMounted = true;
 
@@ -186,7 +194,7 @@ export default function LoginPage() {
         password,
       });
       setLoading(false);
-      
+
       if (signInError) {
         setIsAuthenticating(false);
         const code = (signInError as { code?: string }).code;
@@ -207,9 +215,9 @@ export default function LoginPage() {
         setError(supabaseAuthErrorToSpanish(signInError));
         return;
       }
-      
+
       // Pequeño delay para mostrar la animación
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       setIsAuthenticating(false);
       router.push("/dashboard");
       return;
@@ -427,7 +435,9 @@ export default function LoginPage() {
             </div>
             <div>
               <CardTitle className="text-2xl">BetTracker Pro</CardTitle>
-              <CardDescription className="text-base">Gestión profesional de apuestas</CardDescription>
+              <CardDescription className="text-base">
+                Gestión profesional de apuestas
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -563,7 +573,11 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 font-semibold"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -659,7 +673,11 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 font-semibold"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -714,7 +732,11 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 font-semibold"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -800,7 +822,11 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 font-semibold"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
