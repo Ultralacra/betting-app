@@ -47,17 +47,10 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // La raíz no tiene contenido: redirige según sesión.
-  // La raíz ('/') ahora muestra la Landing Page.
-  // Si hay usuario logueado, lo mandamos al dashboard para que no vea la landing.
-  if (pathname === "/" && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/dashboard"
-    return NextResponse.redirect(url)
-  }
-
-  // Si no hay usuario y está en raíz, permitimos que pase (se muestra Landing Page)
   if (pathname === "/") {
-    return response;
+    const url = request.nextUrl.clone()
+    url.pathname = user ? "/dashboard" : "/login"
+    return NextResponse.redirect(url)
   }
 
   if (
@@ -73,6 +66,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname === "/login") {
+    const type = request.nextUrl.searchParams.get("type")
+    // Permite el flujo de recuperación de contraseña en /login?type=recovery
+    // (el hash no llega al middleware, por eso usamos querystring).
+    if (type === "recovery") return response
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)

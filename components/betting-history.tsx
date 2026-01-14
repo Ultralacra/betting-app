@@ -84,7 +84,7 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                         : event.type === "withdrawal"
                         ? "bg-orange-500/10"
                         : event.result === "win"
-                        ? "bg-green-500/10"
+                        ? "bg-accent/10"
                         : "bg-red-500/10"
                     }`}
                   >
@@ -95,7 +95,7 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                       <Minus className="h-3 w-3 text-orange-500" />
                     )}
                     {event.type === "bet" && event.result === "win" && (
-                      <ArrowUp className="h-3 w-3 text-green-500" />
+                      <ArrowUp className="h-3 w-3 text-accent" />
                     )}
                     {event.type === "bet" && event.result === "lose" && (
                       <ArrowDown className="h-3 w-3 text-red-500" />
@@ -127,7 +127,7 @@ export function BettingHistory({ plan, initialBudget }: BettingHistoryProps) {
                   <p
                     className={`text-sm font-bold ${
                       event.type === "bet" && event.result === "win"
-                        ? "text-green-500"
+                        ? "text-accent"
                         : event.type === "bet" && event.result === "lose"
                         ? "text-red-500"
                         : "text-foreground"

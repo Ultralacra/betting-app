@@ -423,14 +423,20 @@ export function AdminAchievementsClient() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-auto min-w-[120px]">Parley</TableHead>
+                    <TableHead className="w-auto min-w-[120px]">
+                      Parley
+                    </TableHead>
                     <TableHead className="w-auto">Línea</TableHead>
                     <TableHead className="w-auto">Momio</TableHead>
-                    <TableHead className="w-full min-w-[200px]">Descripción</TableHead>
+                    <TableHead className="w-full min-w-[200px]">
+                      Descripción
+                    </TableHead>
                     <TableHead className="w-20 text-center">Likes</TableHead>
                     <TableHead className="w-[140px]">Estado</TableHead>
                     <TableHead className="w-[140px]">Creado</TableHead>
-                    <TableHead className="w-[140px] text-right">Acciones</TableHead>
+                    <TableHead className="w-[140px] text-right">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -483,7 +489,9 @@ export function AdminAchievementsClient() {
                               ) : null}
                             </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground">—</div>
+                            <div className="text-sm text-muted-foreground">
+                              —
+                            </div>
                           )}
                         </TableCell>
 
@@ -495,7 +503,10 @@ export function AdminAchievementsClient() {
                           <Select
                             value={r.result}
                             onValueChange={(val) =>
-                              updateStatus(r.id, val as "PENDING" | "HIT" | "MISS")
+                              updateStatus(
+                                r.id,
+                                val as "PENDING" | "HIT" | "MISS"
+                              )
                             }
                           >
                             <SelectTrigger
@@ -505,7 +516,8 @@ export function AdminAchievementsClient() {
                                   "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
                                 r.result === "MISS" &&
                                   "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
-                                r.result === "PENDING" && "text-muted-foreground"
+                                r.result === "PENDING" &&
+                                  "text-muted-foreground"
                               )}
                             >
                               <SelectValue />
@@ -552,7 +564,10 @@ export function AdminAchievementsClient() {
         </CardContent>
       </Card>
 
-      <Dialog open={editModalOpen} onOpenChange={(open) => !open && cancelEdit()}>
+      <Dialog
+        open={editModalOpen}
+        onOpenChange={(open) => !open && cancelEdit()}
+      >
         <DialogContent className="sm:max-w-180">
           <DialogHeader>
             <DialogTitle>Detalle del logro</DialogTitle>
@@ -572,7 +587,10 @@ export function AdminAchievementsClient() {
               </div>
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Estado</div>
-                <Select value={editResult} onValueChange={(v) => setEditResult(v as any)}>
+                <Select
+                  value={editResult}
+                  onValueChange={(v) => setEditResult(v as any)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
@@ -588,11 +606,17 @@ export function AdminAchievementsClient() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Línea</div>
-                <Input value={editLine} onChange={(e) => setEditLine(e.target.value)} />
+                <Input
+                  value={editLine}
+                  onChange={(e) => setEditLine(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Momio</div>
-                <Input value={editMomio} onChange={(e) => setEditMomio(e.target.value)} />
+                <Input
+                  value={editMomio}
+                  onChange={(e) => setEditMomio(e.target.value)}
+                />
               </div>
             </div>
 

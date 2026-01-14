@@ -16,8 +16,8 @@
   --secondary-foreground: oklch(0.23 0.02 106);
   --muted: oklch(0.95 0.01 106);
   --muted-foreground: oklch(0.5 0.01 106);
-  /* Success Green to replace Violet */
-  --accent: oklch(0.623 0.214 145);
+  /* Professional Indigo/Blue */
+  --accent: oklch(0.557 0.183 263.711);
   --accent-foreground: oklch(0.98 0.005 106);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
@@ -53,8 +53,8 @@
   --secondary-foreground: oklch(0.98 0.005 106);
   --muted: oklch(0.26 0.01 106);
   --muted-foreground: oklch(0.6 0.01 106);
-  /* Success Green */
-  --accent: oklch(0.623 0.214 145);
+  /* Professional Indigo/Blue */
+  --accent: oklch(0.643 0.218 269.647);
   --accent-foreground: oklch(0.98 0.005 106);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.985 0 0);

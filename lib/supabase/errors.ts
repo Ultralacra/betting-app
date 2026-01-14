@@ -4,7 +4,8 @@ type SupabaseAuthErrorLike = {
 }
 
 const CODE_TO_ES: Record<string, string> = {
-  email_not_confirmed: "Tu correo aún no está confirmado. Revisa tu email y confirma tu cuenta.",
+  email_not_confirmed:
+    "Tu correo aún no está confirmado. Revisa tu bandeja de entrada (y spam) y abre el enlace de verificación para activar tu cuenta.",
   invalid_login_credentials: "Email o contraseña incorrectos.",
   user_already_exists: "Ya existe una cuenta con este email.",
   email_address_not_authorized: "Este email no está autorizado para registrarse.",
@@ -16,7 +17,7 @@ const CODE_TO_ES: Record<string, string> = {
 const MESSAGE_TO_ES: Array<{ includes: string; es: string }> = [
   {
     includes: "Email not confirmed",
-    es: "Tu correo aún no está confirmado. Revisa tu email y confirma tu cuenta.",
+    es: "Tu correo aún no está confirmado. Revisa tu bandeja de entrada (y spam) y abre el enlace de verificación para activar tu cuenta.",
   },
   {
     includes: "Invalid login credentials",

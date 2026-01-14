@@ -122,43 +122,46 @@ export function Achievements() {
     };
   }, [supabase, load]);
 
-  const toggleLike = useCallback(async (achievementId: string) => {
-    // Optimista (suave)
-    setAchievements((prev) =>
-      prev.map((a) => {
-        if (a.id !== achievementId) return a;
-        const nextLiked = !a.likedByMe;
-        return {
-          ...a,
-          likedByMe: nextLiked,
-          likesCount: Math.max(0, (a.likesCount ?? 0) + (nextLiked ? 1 : -1)),
-        };
-      })
-    );
+  const toggleLike = useCallback(
+    async (achievementId: string) => {
+      // Optimista (suave)
+      setAchievements((prev) =>
+        prev.map((a) => {
+          if (a.id !== achievementId) return a;
+          const nextLiked = !a.likedByMe;
+          return {
+            ...a,
+            likedByMe: nextLiked,
+            likesCount: Math.max(0, (a.likesCount ?? 0) + (nextLiked ? 1 : -1)),
+          };
+        })
+      );
 
-    try {
-      const res = await fetch("/api/achievements/likes", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ achievementId, action: "toggle" }),
-      });
+      try {
+        const res = await fetch("/api/achievements/likes", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ achievementId, action: "toggle" }),
+        });
 
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as any;
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as any;
+          throw new Error(body?.error ?? `HTTP ${res.status}`);
+        }
+      } catch (e) {
+        // Revertir y refrescar
+        const message = e instanceof Error ? e.message : String(e);
+        toast({
+          title: "No se pudo actualizar el like",
+          description: message,
+          variant: "destructive",
+        });
+        void load();
       }
-    } catch (e) {
-      // Revertir y refrescar
-      const message = e instanceof Error ? e.message : String(e);
-      toast({
-        title: "No se pudo actualizar el like",
-        description: message,
-        variant: "destructive",
-      });
-      void load();
-    }
-  }, [load]);
+    },
+    [load]
+  );
 
   const emptyText = useMemo(() => {
     if (loading) return "Cargando…";
@@ -177,7 +180,10 @@ export function Achievements() {
 
     for (const a of achievements) {
       const d = new Date(a.created_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(d.getDate()).padStart(2, "0")}`;
       const arr = groups.get(key) ?? [];
       arr.push(a);
       groups.set(key, arr);
@@ -185,7 +191,10 @@ export function Achievements() {
 
     const items = Array.from(groups.entries())
       .map(([key, list]) => {
-        list.sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime());
+        list.sort(
+          (x, y) =>
+            new Date(y.created_at).getTime() - new Date(x.created_at).getTime()
+        );
         const [yy, mm, dd] = key.split("-").map((n) => Number(n));
         const date = new Date(yy, (mm ?? 1) - 1, dd ?? 1);
         const label = date.toLocaleDateString("es-ES", {

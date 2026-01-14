@@ -113,7 +113,7 @@ export function BettingAnalytics({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
+              <TrendingUp className="h-4 w-4 text-accent" />
               <span className="text-sm text-muted-foreground">Mejor Racha</span>
             </div>
             <Badge variant="default">{bestWinStreak} victorias</Badge>

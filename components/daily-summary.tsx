@@ -55,7 +55,7 @@ export function DailySummary({ plan }: DailySummaryProps) {
                 }`}
           </Badge>
           {wonBets > 0 && (
-            <Badge variant="default" className="bg-green-500">
+            <Badge variant="default" className="bg-accent">
               {wonBets} ganada{wonBets !== 1 ? "s" : ""}
             </Badge>
           )}

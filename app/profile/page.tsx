@@ -29,7 +29,8 @@ export default async function ProfilePage() {
     .eq("user_id", user.id)
     .single();
 
-  const newDisplayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+  const newDisplayName =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
   const newRole = isAdminUser(user.id) ? "ADMIN" : "MEMBER";
 
   // Solo hacemos upsert si no existe o si hay cambios reales en los datos básicos.
@@ -56,10 +57,16 @@ export default async function ProfilePage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
+  // Obtener información del proveedor de autenticación
+  const provider = user.app_metadata?.provider ?? "email";
+  const hasPassword = user.app_metadata?.provider === "email";
+
   const profile = {
     id: user.id,
     email: user.email ?? null,
     name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+    provider,
+    hasPassword,
     membershipTier: (appUserRow?.membership_tier ?? "FREE") as "FREE" | "PRO",
     membershipDuration: (appUserRow?.membership_duration ?? null) as
       | "1M"
