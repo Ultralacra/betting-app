@@ -41,6 +41,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UpdateBanner } from "@/components/update-banner";
 
 // ... existing imports
 
@@ -51,6 +52,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href="/icon-light-32x32.png"
+          type="image/png"
+          sizes="32x32"
+        />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+      </head>
       <body className={`font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
@@ -61,6 +72,7 @@ export default function RootLayout({
           {children}
           <ThemeToggle />
           <Toaster />
+          <UpdateBanner />
           <Analytics />
         </ThemeProvider>
       </body>

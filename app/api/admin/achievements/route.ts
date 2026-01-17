@@ -260,15 +260,16 @@ export async function PATCH(req: Request) {
     | null;
 
   const id = body?.id;
+  if (!id) {
+    return NextResponse.json({ error: "invalid_body", details: "Se requiere el campo 'id'" }, { status: 400 });
+  }
+
+  // Solo requerimos id, los demás campos son opcionales para actualización parcial
   const parleyName = body?.parleyName?.trim();
   const line = body?.line?.trim();
   const momio = body?.momio?.trim();
   const description = body?.description?.trim();
-  const result = normalizeResult(body?.result);
-
-  if (!id || !parleyName || !line || !momio) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
+  const result = body?.result ? normalizeResult(body.result) : undefined;
 
   let admin: ReturnType<typeof createSupabaseAdminClient>;
   try {
@@ -285,13 +286,24 @@ export async function PATCH(req: Request) {
     );
   }
 
-  const update: Record<string, unknown> = {
-    parley_name: parleyName,
-    line,
-    momio,
-    description: description && description.length > 0 ? description : null,
-    result,
-  };
+  // Construir objeto de actualización solo con campos definidos
+  const update: Record<string, unknown> = {};
+  if (parleyName) update.parley_name = parleyName;
+  if (line) update.line = line;
+  if (momio) update.momio = momio;
+  if (description !== undefined) update.description = description.length > 0 ? description : null;
+  if (result !== undefined) update.result = result;
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "invalid_body", details: "No hay campos para actualizar" }, { status: 400 });
+  }
+
+  // Obtener el logro actual para ver si cambió el resultado
+  const { data: currentAchievement } = await admin
+    .from("achievements")
+    .select("parley_name, line, momio, result")
+    .eq("id", id)
+    .single();
 
   const { error } = await admin.from("achievements").update(update).eq("id", id);
 
@@ -299,7 +311,66 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  // Notificación push si el resultado cambió a HIT o MISS
+  let pushSent = 0;
+  let pushFailed = 0;
+  const oldResult = currentAchievement?.result;
+  const newResult = result;
+  const shouldNotify = newResult && newResult !== oldResult && (newResult === "HIT" || newResult === "MISS");
+
+  if (shouldNotify && currentAchievement) {
+    try {
+      const publicKey = process.env.VAPID_PUBLIC_KEY;
+      const privateKey = process.env.VAPID_PRIVATE_KEY;
+      const subject = process.env.VAPID_SUBJECT ?? "mailto:admin@example.com";
+      if (publicKey && privateKey) {
+        webpush.setVapidDetails(subject, publicKey, privateKey);
+        const { data: subs } = await admin
+          .from("push_subscriptions")
+          .select("endpoint,p256dh,auth");
+
+        const emoji = newResult === "HIT" ? "✅" : "❌";
+        const statusText = newResult === "HIT" ? "¡PEGÓ!" : "No pegó";
+        const payload = JSON.stringify({
+          title: `${emoji} ${statusText}`,
+          body: `${currentAchievement.parley_name} • ${currentAchievement.line} • ${currentAchievement.momio}`,
+          url: "/dashboard",
+        });
+
+        // eslint-disable-next-line no-console
+        console.log(`[Push] Notificando resultado ${newResult} a ${subs?.length ?? 0} suscriptores...`);
+
+        const results = await Promise.all(
+          (subs ?? []).map(async (s: any) => {
+            const subscription = {
+              endpoint: s.endpoint,
+              keys: { p256dh: s.p256dh, auth: s.auth },
+            };
+            try {
+              await webpush.sendNotification(subscription as any, payload);
+              return { ok: true };
+            } catch (e: any) {
+              const statusCode = e?.statusCode;
+              if (statusCode === 404 || statusCode === 410) {
+                await admin.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+              }
+              return { ok: false, statusCode };
+            }
+          })
+        );
+
+        pushSent = results.filter((r) => r.ok).length;
+        pushFailed = results.length - pushSent;
+        // eslint-disable-next-line no-console
+        console.log(`[Push] Resultado: ${pushSent} enviadas, ${pushFailed} fallidas`);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[Push] Error al enviar notificaciones:", e);
+    }
+  }
+
+  return NextResponse.json({ ok: true, pushSent, pushFailed });
 }
 
 export async function DELETE(req: Request) {
