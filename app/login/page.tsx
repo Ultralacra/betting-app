@@ -102,7 +102,7 @@ export default function LoginPage() {
   const [lastSignUpEmail, setLastSignUpEmail] = useState<string | null>(null);
   const [signUpResendLoading, setSignUpResendLoading] = useState(false);
   const [signUpResendMessage, setSignUpResendMessage] = useState<string | null>(
-    null
+    null,
   );
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -207,7 +207,7 @@ export default function LoginPage() {
           setResendEmail(normalizedEmail);
           setMessage(
             `Aún no confirmaste tu correo. Te enviamos un enlace de verificación a ${normalizedEmail}. ` +
-              "Ábrelo para activar tu cuenta. Si no te llega, revisa spam o reenvíalo."
+              "Ábrelo para activar tu cuenta. Si no te llega, revisa spam o reenvíalo.",
           );
           return;
         }
@@ -230,7 +230,7 @@ export default function LoginPage() {
         options: {
           emailRedirectTo:
             typeof window !== "undefined"
-              ? `${window.location.origin}/login`
+              ? `${window.location.origin}/auth/confirm`
               : undefined,
         },
       });
@@ -246,7 +246,7 @@ export default function LoginPage() {
         ?.identities;
       if (Array.isArray(identities) && identities.length === 0) {
         setError(
-          "Ya existe una cuenta con este email. Ingresa o recupera tu contraseña."
+          "Ya existe una cuenta con este email. Ingresa o recupera tu contraseña.",
         );
         setView("login");
         return;
@@ -254,7 +254,7 @@ export default function LoginPage() {
 
       if (!data.user) {
         setError(
-          "No se pudo crear la cuenta. Si ya tienes una, intenta iniciar sesión o recuperar tu contraseña."
+          "No se pudo crear la cuenta. Si ya tienes una, intenta iniciar sesión o recuperar tu contraseña.",
         );
         setView("login");
         return;
@@ -284,9 +284,9 @@ export default function LoginPage() {
         {
           redirectTo:
             typeof window !== "undefined"
-              ? `${window.location.origin}/login?type=recovery`
+              ? `${window.location.origin}/auth/reset-password`
               : undefined,
-        }
+        },
       );
       setLoading(false);
       if (resetError) {
@@ -398,13 +398,13 @@ export default function LoginPage() {
                   });
                   if (resendError) {
                     setSignUpResendMessage(
-                      supabaseAuthErrorToSpanish(resendError)
+                      supabaseAuthErrorToSpanish(resendError),
                     );
                     return;
                   }
                   setSignUpResendMessage(
                     `Listo. Reenviamos el correo de confirmación a ${targetEmail}. ` +
-                      "Revisa tu bandeja de entrada y spam."
+                      "Revisa tu bandeja de entrada y spam.",
                   );
                 } finally {
                   setSignUpResendLoading(false);
@@ -491,7 +491,7 @@ export default function LoginPage() {
                           }
                           setMessage(
                             `Listo. Reenviamos el correo de confirmación a ${resendEmail}. ` +
-                              "Revisa tu bandeja de entrada y spam."
+                              "Revisa tu bandeja de entrada y spam.",
                           );
                         } finally {
                           setResendLoading(false);
