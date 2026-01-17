@@ -33,7 +33,7 @@ type MembershipTier = "FREE" | "PRO";
 type MembershipDuration = "1M" | "2M" | "3M" | "1Y" | "LIFETIME";
 
 function membershipDurationLabel(
-  dur: MembershipDuration | null | undefined
+  dur: MembershipDuration | null | undefined,
 ): string {
   if (!dur) return "";
   if (dur === "LIFETIME") return "Lifetime";
@@ -45,7 +45,7 @@ function membershipDurationLabel(
 
 function daysLeftLabel(
   expiresAt: Date | null,
-  duration: MembershipDuration | null | undefined
+  duration: MembershipDuration | null | undefined,
 ): string | null {
   if (duration === "LIFETIME") return "Lifetime";
   if (!expiresAt) return null;
@@ -143,7 +143,7 @@ export function ProfileClient({ profile }: Props) {
           const nextTier = next.membership_tier ?? liveProfile.membershipTier;
           const nextDuration =
             next.membership_duration === undefined
-              ? liveProfile.membershipDuration ?? null
+              ? (liveProfile.membershipDuration ?? null)
               : next.membership_duration;
           const nextExpiresAt = next.membership_expires_at
             ? new Date(next.membership_expires_at)
@@ -174,12 +174,12 @@ export function ProfileClient({ profile }: Props) {
               nextTier !== "PRO"
                 ? "Tu plan ahora es FREE."
                 : nextDuration === "LIFETIME" || (!nextExpiresAt && durLabel)
-                ? `Tu plan es PRO (${durLabel}).`
-                : `Tu plan es PRO${durLabel ? ` (${durLabel})` : ""}${
-                    nextExpiresAt
-                      ? ` y vence el ${nextExpiresAt.toLocaleDateString()}.`
-                      : "."
-                  }`;
+                  ? `Tu plan es PRO (${durLabel}).`
+                  : `Tu plan es PRO${durLabel ? ` (${durLabel})` : ""}${
+                      nextExpiresAt
+                        ? ` y vence el ${nextExpiresAt.toLocaleDateString()}.`
+                        : "."
+                    }`;
 
             setMembershipModalText({
               title:
@@ -198,7 +198,7 @@ export function ProfileClient({ profile }: Props) {
               // ignore
             }
           }
-        }
+        },
       )
       .subscribe();
 
@@ -239,7 +239,7 @@ export function ProfileClient({ profile }: Props) {
     if (liveProfile.membershipTier !== "PRO") return null;
     return daysLeftLabel(
       liveProfile.membershipExpiresAt,
-      liveProfile.membershipDuration ?? null
+      liveProfile.membershipDuration ?? null,
     );
   }, [
     liveProfile.membershipDuration,
@@ -407,11 +407,16 @@ export function ProfileClient({ profile }: Props) {
                     <Mail className="w-4 h-4 text-accent" /> Email
                   </Label>
                   <div className="p-3.5 rounded-lg bg-accent/5 border border-accent/20 font-mono text-sm hover:border-accent/40 transition-colors">
-                    <span className="text-foreground">{profile.email ?? "No registrado"}</span>
+                    <span className="text-foreground">
+                      {profile.email ?? "No registrado"}
+                    </span>
                   </div>
                   {profile.provider === "google" && (
                     <div className="flex items-center gap-2 pt-1">
-                      <Badge variant="outline" className="text-xs bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -438,7 +443,9 @@ export function ProfileClient({ profile }: Props) {
                         </svg>
                         Google
                       </Badge>
-                      <span className="text-xs text-muted-foreground">Cuenta vinculada</span>
+                      <span className="text-xs text-muted-foreground">
+                        Cuenta vinculada
+                      </span>
                     </div>
                   )}
                 </div>
@@ -575,12 +582,12 @@ export function ProfileClient({ profile }: Props) {
                   {liveProfile.membershipTier !== "PRO"
                     ? "Actualiza a PRO para desbloquear todas las funcionalidades avanzadas y límites extendidos."
                     : liveProfile.membershipDuration === "LIFETIME"
-                    ? "¡Tienes acceso de por vida! Disfruta sin límites."
-                    : liveProfile.membershipExpiresAt
-                    ? `Tu suscripción vence el ${new Date(
-                        liveProfile.membershipExpiresAt
-                      ).toLocaleDateString()}.`
-                    : "Suscripción activa."}
+                      ? "¡Tienes acceso de por vida! Disfruta sin límites."
+                      : liveProfile.membershipExpiresAt
+                        ? `Tu suscripción vence el ${new Date(
+                            liveProfile.membershipExpiresAt,
+                          ).toLocaleDateString()}.`
+                        : "Suscripción activa."}
                 </div>
               </div>
             </CardContent>
