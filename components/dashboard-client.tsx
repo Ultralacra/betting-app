@@ -3,7 +3,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { TrendingUp, Moon, Sun, LogOut, User as UserIcon, ChevronDown, Calculator, Zap, GitCompare, Wrench } from "lucide-react";
+import dynamic from "next/dynamic";
+import {
+  TrendingUp,
+  Moon,
+  Sun,
+  LogOut,
+  User as UserIcon,
+  ChevronDown,
+  Calculator,
+  Zap,
+  GitCompare,
+  Wrench,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -14,26 +26,97 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Componentes críticos cargados inmediatamente
 import { BettingForm } from "@/components/betting-form";
 import { BettingPlan } from "@/components/betting-plan";
-import { BettingChart } from "@/components/betting-chart";
-import { BettingAnalytics } from "@/components/betting-analytics";
-import { BettingHistory } from "@/components/betting-history";
 import { PlanManager } from "@/components/plan-manager";
-import { QuickCalculator } from "@/components/quick-calculator";
-import { Achievements } from "@/components/achievements";
 import { DailySummary } from "@/components/daily-summary";
-
-// New components
 import { StatsCards } from "@/components/dashboard/StatsCards";
-import { StreakIndicator } from "@/components/dashboard/StreakIndicator";
-import { GoalsWidget } from "@/components/dashboard/GoalsWidget";
-import { BankrollAlert } from "@/components/dashboard/BankrollAlert";
 import { BottomNav } from "@/components/dashboard/BottomNav";
-import { ParlayCalculator } from "@/components/parlay-calculator";
-import { PlanComparison } from "@/components/plan-comparison";
-import { SimulationMode } from "@/components/simulation-mode";
-import { OddsHistory } from "@/components/odds-history";
+
+// Componentes secundarios con lazy loading
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ChartSkeleton = () => (
+  <div className="w-full h-[400px] rounded-lg bg-muted animate-pulse" />
+);
+
+const BettingChart = dynamic(
+  () => import("@/components/betting-chart").then((mod) => mod.BettingChart),
+  { loading: () => <ChartSkeleton />, ssr: false },
+);
+
+const BettingAnalytics = dynamic(
+  () =>
+    import("@/components/betting-analytics").then(
+      (mod) => mod.BettingAnalytics,
+    ),
+  { loading: () => <ChartSkeleton />, ssr: false },
+);
+
+const BettingHistory = dynamic(
+  () =>
+    import("@/components/betting-history").then((mod) => mod.BettingHistory),
+  { loading: () => <Skeleton className="h-[300px] w-full" /> },
+);
+
+const QuickCalculator = dynamic(
+  () =>
+    import("@/components/quick-calculator").then((mod) => mod.QuickCalculator),
+  { loading: () => <Skeleton className="h-[200px] w-full" /> },
+);
+
+const Achievements = dynamic(
+  () => import("@/components/achievements").then((mod) => mod.Achievements),
+  { loading: () => <Skeleton className="h-[300px] w-full" /> },
+);
+
+const StreakIndicator = dynamic(
+  () =>
+    import("@/components/dashboard/StreakIndicator").then(
+      (mod) => mod.StreakIndicator,
+    ),
+  { loading: () => <Skeleton className="h-10 w-32" /> },
+);
+
+const GoalsWidget = dynamic(
+  () =>
+    import("@/components/dashboard/GoalsWidget").then((mod) => mod.GoalsWidget),
+  { loading: () => <Skeleton className="h-[200px] w-full" /> },
+);
+
+const BankrollAlert = dynamic(
+  () =>
+    import("@/components/dashboard/BankrollAlert").then(
+      (mod) => mod.BankrollAlert,
+    ),
+  { loading: () => null },
+);
+
+const ParlayCalculator = dynamic(
+  () =>
+    import("@/components/parlay-calculator").then(
+      (mod) => mod.ParlayCalculator,
+    ),
+  { loading: () => <Skeleton className="h-[300px] w-full" /> },
+);
+
+const PlanComparison = dynamic(
+  () =>
+    import("@/components/plan-comparison").then((mod) => mod.PlanComparison),
+  { loading: () => <Skeleton className="h-[400px] w-full" /> },
+);
+
+const SimulationMode = dynamic(
+  () =>
+    import("@/components/simulation-mode").then((mod) => mod.SimulationMode),
+  { loading: () => <Skeleton className="h-[300px] w-full" /> },
+);
+
+const OddsHistory = dynamic(
+  () => import("@/components/odds-history").then((mod) => mod.OddsHistory),
+  { loading: () => <Skeleton className="h-[200px] w-full" /> },
+);
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +171,7 @@ type UserSummary = {
 } | null;
 
 function membershipDurationLabel(
-  dur: MembershipDuration | null | undefined
+  dur: MembershipDuration | null | undefined,
 ): string {
   if (!dur) return "";
   if (dur === "LIFETIME") return "Lifetime";
@@ -139,7 +222,7 @@ type MembershipPerks = {
 
 function buildMembershipDescription(
   tier: "FREE" | "PRO",
-  perks: MembershipPerks
+  perks: MembershipPerks,
 ): string {
   const lines: string[] = [];
 
@@ -170,7 +253,7 @@ function buildMembershipDescription(
 
 function daysLeftLabel(
   expiresAt: Date | null,
-  duration: MembershipDuration | null | undefined
+  duration: MembershipDuration | null | undefined,
 ): string | null {
   if (duration === "LIFETIME") return "Lifetime";
   if (!expiresAt) return null;
@@ -210,7 +293,7 @@ interface Props {
 
 function generatePlan(
   config: BettingConfig,
-  startBalance: number
+  startBalance: number,
 ): DayResult[] {
   const plan: DayResult[] = [];
   let currentBalance = startBalance;
@@ -219,7 +302,7 @@ function generatePlan(
 
   const daysDiff =
     Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
     ) + 1;
 
   for (let day = 1; day <= daysDiff; day++) {
@@ -301,6 +384,7 @@ export function DashboardClient({
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [pwaBusy, setPwaBusy] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null);
 
   const [membershipModalOpen, setMembershipModalOpen] = useState(false);
   const [membershipModalText, setMembershipModalText] = useState<{
@@ -329,6 +413,19 @@ export function DashboardClient({
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     };
+  }, []);
+
+  // Verificar estado de suscripción push al montar
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushSubscribed(false);
+      return;
+    }
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => setPushSubscribed(!!sub))
+      .catch(() => setPushSubscribed(false));
   }, []);
 
   const ensureServiceWorker = useCallback(async () => {
@@ -433,6 +530,7 @@ export function DashboardClient({
         title: "Listo",
         description: "App instalada y notificaciones activadas.",
       });
+      setPushSubscribed(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "No se pudo completar";
       toast({
@@ -511,7 +609,7 @@ export function DashboardClient({
           table: "app_users",
           filter: `user_id=eq.${userSummary.id}`,
         },
-        onMembershipChange
+        onMembershipChange,
       )
       .on(
         "postgres_changes",
@@ -521,7 +619,7 @@ export function DashboardClient({
           table: "app_users",
           filter: `user_id=eq.${userSummary.id}`,
         },
-        onMembershipChange
+        onMembershipChange,
       )
       .subscribe();
 
@@ -623,7 +721,7 @@ export function DashboardClient({
     if (userSummary.membershipTier !== "PRO") return null;
     return daysLeftLabel(
       userSummary.membershipExpiresAt,
-      userSummary.membershipDuration ?? null
+      userSummary.membershipDuration ?? null,
     );
   }, [userSummary]);
 
@@ -648,14 +746,17 @@ export function DashboardClient({
   const [config, setConfig] = useState<BettingConfig | null>(initialConfig);
   const [plan, setPlan] = useState<DayResult[]>(initialPlan);
   const [currentBalance, setCurrentBalance] = useState<number>(
-    initialBettingData.currentBalance ?? initialConfig?.initialBudget ?? 0
+    initialBettingData.currentBalance ?? initialConfig?.initialBudget ?? 0,
   );
   const { theme, setTheme, resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
 
   useEffect(() => {
-    if (initialBettingData.theme === "dark" || initialBettingData.theme === "light") {
-        setTheme(initialBettingData.theme);
+    if (
+      initialBettingData.theme === "dark" ||
+      initialBettingData.theme === "light"
+    ) {
+      setTheme(initialBettingData.theme);
     }
   }, []);
 
@@ -790,7 +891,7 @@ export function DashboardClient({
   const saveCurrentPlanToStorage = async (
     name: string,
     cfg: BettingConfig,
-    pl: DayResult[]
+    pl: DayResult[],
   ) => {
     const newPlan = {
       id: makeId(),
@@ -884,11 +985,11 @@ export function DashboardClient({
         flushPendingSave();
       }, 400);
     },
-    [flushPendingSave]
+    [flushPendingSave],
   );
 
   const savedPlanSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
   const pendingSavedPlanSaveRef = useRef<{
     config: BettingConfig;
@@ -937,7 +1038,7 @@ export function DashboardClient({
         flushPendingSavedPlanSave();
       }, 600);
     },
-    [flushPendingSavedPlanSave]
+    [flushPendingSavedPlanSave],
   );
 
   useEffect(() => {
@@ -955,7 +1056,7 @@ export function DashboardClient({
   const recalcPlanFrom = (
     basePlan: DayResult[],
     fromIndex: number,
-    activeConfig: BettingConfig
+    activeConfig: BettingConfig,
   ) => {
     const next = basePlan.map((d) => ({
       ...d,
@@ -986,7 +1087,7 @@ export function DashboardClient({
       day.totalStake = day.bets.reduce((sum, b) => sum + (b.stake ?? 0), 0);
       day.totalPotentialWin = day.bets.reduce(
         (sum, b) => sum + (b.potentialWin ?? 0),
-        0
+        0,
       );
 
       const allResolved =
@@ -1020,7 +1121,7 @@ export function DashboardClient({
 
   const syncAfterPlanChange = (
     nextPlan: DayResult[],
-    activeConfig: BettingConfig | null
+    activeConfig: BettingConfig | null,
   ) => {
     if (!activeConfig) return;
 
@@ -1047,7 +1148,7 @@ export function DashboardClient({
       stakePercentage?: number;
       odds?: number;
       result?: "win" | "lose" | null;
-    }
+    },
   ) => {
     if (!config) return;
     setPlan((prev) => {
@@ -1094,12 +1195,12 @@ export function DashboardClient({
 
       const currentPerc = (day.bets ?? []).reduce(
         (sum, b) => sum + (b.stakePercentage ?? 0),
-        0
+        0,
       );
       const remaining = Math.max(0, 100 - currentPerc);
       const stakePct = Math.max(
         1,
-        Math.min(config.stakePercentage, remaining || config.stakePercentage)
+        Math.min(config.stakePercentage, remaining || config.stakePercentage),
       );
 
       const stake = (day.currentBalance * stakePct) / 100;
@@ -1140,8 +1241,6 @@ export function DashboardClient({
     });
   };
 
-
-
   const handleConfigSubmit = async (newConfig: BettingConfig) => {
     const generatedPlan = generatePlan(newConfig, newConfig.initialBudget);
     setConfig(newConfig);
@@ -1175,7 +1274,7 @@ export function DashboardClient({
     const planId = editingPlan?.id ?? makeId();
     const planName =
       firstPlanName.trim() ||
-      (planModalMode === "edit" ? editingPlan?.name ?? "Mi plan" : "Mi plan");
+      (planModalMode === "edit" ? (editingPlan?.name ?? "Mi plan") : "Mi plan");
     const savedAt =
       planModalMode === "edit" && editingPlan?.savedAt
         ? editingPlan.savedAt
@@ -1241,7 +1340,7 @@ export function DashboardClient({
   const handleLoadPlan = async (
     loadedConfig: BettingConfig,
     loadedPlan: DayResult[],
-    meta?: ActiveSavedPlanMeta
+    meta?: ActiveSavedPlanMeta,
   ) => {
     setConfig(loadedConfig);
     setPlan(loadedPlan);
@@ -1306,12 +1405,19 @@ export function DashboardClient({
                 </Button>
               )}
               <Button
-                variant="outline"
+                variant={pushSubscribed ? "default" : "outline"}
                 size="sm"
                 onClick={installAndEnableNotifications}
                 disabled={pwaBusy}
+                className={
+                  pushSubscribed ? "bg-green-600 hover:bg-green-700" : ""
+                }
               >
-                {pwaBusy ? "Configurando…" : "Instalar app"}
+                {pwaBusy
+                  ? "Configurando…"
+                  : pushSubscribed
+                    ? "🔔 Notificaciones activas"
+                    : "🔕 Activar notificaciones"}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1324,24 +1430,31 @@ export function DashboardClient({
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Utilidades</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <QuickCalculator trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Calculator className="mr-2 h-4 w-4" />
-                      <span>Calculadora Rápida</span>
-                    </DropdownMenuItem>
-                  } />
-                  <ParlayCalculator trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Zap className="mr-2 h-4 w-4 text-yellow-500" />
-                      <span>Calculadora Parlays</span>
-                    </DropdownMenuItem>
-                  } />
-                  <PlanComparison plans={savedPlans} trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <GitCompare className="mr-2 h-4 w-4" />
-                      <span>Comparar Planes</span>
-                    </DropdownMenuItem>
-                  } />
+                  <QuickCalculator
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Calculator className="mr-2 h-4 w-4" />
+                        <span>Calculadora Rápida</span>
+                      </DropdownMenuItem>
+                    }
+                  />
+                  <ParlayCalculator
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                        <span>Calculadora Parlays</span>
+                      </DropdownMenuItem>
+                    }
+                  />
+                  <PlanComparison
+                    plans={savedPlans}
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <GitCompare className="mr-2 h-4 w-4" />
+                        <span>Comparar Planes</span>
+                      </DropdownMenuItem>
+                    }
+                  />
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -1363,7 +1476,10 @@ export function DashboardClient({
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive focus:text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Cerrar sesión</span>
                   </DropdownMenuItem>
@@ -1450,7 +1566,11 @@ export function DashboardClient({
           <div className="lg:col-span-2">
             {config && plan.length > 0 ? (
               <>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="w-full"
+                >
                   <TabsList className="w-full max-w-full justify-start overflow-x-auto scrollbar-hide">
                     <TabsTrigger value="dashboard" className="flex-none">
                       Panel
@@ -1498,42 +1618,42 @@ export function DashboardClient({
                     </div>
                   </TabsContent>
 
-                <TabsContent value="plan" className="space-y-6 mt-6">
-                  <BettingPlan
-                    plan={plan}
-                    config={config}
-                    onUpdateBet={handleUpdateBet}
-                    onAddBet={handleAddBet}
-                    onRemoveBet={handleRemoveBet}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Puedes agregar apuestas, editar monto/cuota y marcar W/L.
-                  </p>
-                </TabsContent>
+                  <TabsContent value="plan" className="space-y-6 mt-6">
+                    <BettingPlan
+                      plan={plan}
+                      config={config}
+                      onUpdateBet={handleUpdateBet}
+                      onAddBet={handleAddBet}
+                      onRemoveBet={handleRemoveBet}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Puedes agregar apuestas, editar monto/cuota y marcar W/L.
+                    </p>
+                  </TabsContent>
 
-                <TabsContent value="analytics" className="space-y-6 mt-6">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <BettingChart
+                  <TabsContent value="analytics" className="space-y-6 mt-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <BettingChart
+                        plan={plan}
+                        initialBudget={config.initialBudget}
+                      />
+                      <BettingAnalytics
+                        plan={plan}
+                        initialBudget={config.initialBudget}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="space-y-6 mt-6">
+                    <BettingHistory
                       plan={plan}
                       initialBudget={config.initialBudget}
                     />
-                    <BettingAnalytics
-                      plan={plan}
-                      initialBudget={config.initialBudget}
-                    />
-                  </div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent value="history" className="space-y-6 mt-6">
-                  <BettingHistory
-                    plan={plan}
-                    initialBudget={config.initialBudget}
-                  />
-                </TabsContent>
-
-                <TabsContent value="achievements" className="space-y-6 mt-6">
-                  <Achievements />
-                </TabsContent>
+                  <TabsContent value="achievements" className="space-y-6 mt-6">
+                    <Achievements />
+                  </TabsContent>
                 </Tabs>
                 <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
               </>
@@ -1621,8 +1741,8 @@ export function DashboardClient({
               {planModalMode === "edit"
                 ? "Editar plan"
                 : planModalMode === "new"
-                ? "Nuevo plan"
-                : "Configura tu primer plan"}
+                  ? "Nuevo plan"
+                  : "Configura tu primer plan"}
             </DialogTitle>
             <DialogDescription>
               {planModalMode === "first"

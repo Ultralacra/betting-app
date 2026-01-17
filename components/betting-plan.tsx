@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import {
   Card,
   CardContent,
@@ -34,6 +34,7 @@ import {
   Trash2,
   RotateCcw,
 } from "lucide-react";
+import { PAGINATION } from "@/lib/constants";
 
 interface BettingPlanProps {
   plan: DayResult[];
@@ -41,13 +42,13 @@ interface BettingPlanProps {
   onUpdateBet: (
     dayIndex: number,
     betId: string,
-    updates: Partial<IndividualBet>
+    updates: Partial<IndividualBet>,
   ) => void;
   onAddBet: (dayIndex: number) => void;
   onRemoveBet: (dayIndex: number, betId: string) => void;
 }
 
-export function BettingPlan({
+function BettingPlanComponent({
   plan,
   config,
   onUpdateBet,
@@ -98,7 +99,7 @@ export function BettingPlan({
   const handleResult = (
     dayIndex: number,
     betId: string,
-    result: "win" | "lose"
+    result: "win" | "lose",
   ) => {
     onUpdateBet(dayIndex, betId, { result });
     setOpenCompletedDay(null);
@@ -116,7 +117,7 @@ export function BettingPlan({
   const handleChangeResult = (
     dayIndex: number,
     betId: string,
-    newResult: "win" | "lose"
+    newResult: "win" | "lose",
   ) => {
     onUpdateBet(dayIndex, betId, { result: newResult });
     setEditingResult(null);
@@ -141,7 +142,7 @@ export function BettingPlan({
   const endDate = new Date(config.endDate);
   const totalDays =
     Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
     ) + 1;
 
   return (
@@ -296,7 +297,7 @@ export function BettingPlan({
                                 >
                                   {currentStakeValue > 0
                                     ? `${currentPercentage.toFixed(
-                                        1
+                                        1,
                                       )}% de la banca`
                                     : "0% de la banca"}
                                   {exceedsBalance && " ⚠️ Excede banca"}
@@ -343,8 +344,8 @@ export function BettingPlan({
                                 isEditing
                                   ? "text-primary"
                                   : betHasResult && bet.result === "win"
-                                  ? "text-chart-2"
-                                  : "text-accent"
+                                    ? "text-chart-2"
+                                    : "text-accent"
                               }`}
                             >
                               {"$"}
@@ -413,7 +414,7 @@ export function BettingPlan({
                                   handleChangeResult(
                                     actualIndex,
                                     bet.id,
-                                    "lose"
+                                    "lose",
                                   )
                                 }
                                 className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/20"
@@ -645,7 +646,7 @@ export function BettingPlan({
                                     weekday: "short",
                                     month: "short",
                                     day: "numeric",
-                                  }
+                                  },
                                 )}
                               </span>
                             </div>
@@ -720,3 +721,6 @@ export function BettingPlan({
     </Card>
   );
 }
+
+// Memoizar el componente para evitar re-renders innecesarios
+export const BettingPlan = memo(BettingPlanComponent);

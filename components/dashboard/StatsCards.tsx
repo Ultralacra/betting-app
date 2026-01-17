@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatPercentage } from "@/lib/format";
@@ -49,10 +49,7 @@ function StatCard({
       </CardHeader>
       <CardContent>
         <div
-          className={cn(
-            "text-2xl font-bold animate-count",
-            trendColors[trend]
-          )}
+          className={cn("text-2xl font-bold animate-count", trendColors[trend])}
         >
           {value}
         </div>
@@ -62,13 +59,20 @@ function StatCard({
   );
 }
 
-export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
-  const stats = useMemo(
-    () => calculatePlanStats(plan, config),
-    [plan, config]
-  );
+// Memoizar el componente StatCard individual
+const MemoizedStatCard = memo(StatCard);
 
-  const lastCompletedDay = plan.findLast((day) => day.result === "completed");
+function StatsCardsComponent({
+  plan,
+  config,
+  currentBalance,
+}: StatsCardsProps) {
+  const stats = useMemo(() => calculatePlanStats(plan, config), [plan, config]);
+
+  const lastCompletedDay = useMemo(
+    () => plan.findLast((day) => day.result === "completed"),
+    [plan],
+  );
   const hasCompletedDays = !!lastCompletedDay;
 
   const displayBalance = hasCompletedDays
@@ -80,7 +84,7 @@ export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatCard
+      <MemoizedStatCard
         title={hasCompletedDays ? "Banca Actual" : "Capital Inicial"}
         value={formatCurrency(displayBalance)}
         subtitle={
@@ -92,7 +96,7 @@ export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
         accentColor="bg-accent/10"
       />
 
-      <StatCard
+      <MemoizedStatCard
         title={hasCompletedDays ? "Ganancia Actual" : "Ganancia Proyectada"}
         value={formatCurrency(Math.abs(stats.totalProfit), { showSign: true })}
         subtitle={`${formatPercentage(stats.roi)} de retorno`}
@@ -101,7 +105,7 @@ export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
         accentColor="bg-chart-2/10"
       />
 
-      <StatCard
+      <MemoizedStatCard
         title="Win Rate"
         value={formatPercentage(stats.winRate)}
         subtitle={`${stats.wonBets}W / ${stats.lostBets}L de ${stats.totalBets} apuestas`}
@@ -109,7 +113,7 @@ export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
         accentColor="bg-primary/10"
       />
 
-      <StatCard
+      <MemoizedStatCard
         title="Cuota Promedio"
         value={stats.averageOdds.toFixed(2)}
         subtitle={`${stats.completedDays} días completados`}
@@ -119,3 +123,6 @@ export function StatsCards({ plan, config, currentBalance }: StatsCardsProps) {
     </div>
   );
 }
+
+// Exportar versión memoizada
+export const StatsCards = memo(StatsCardsComponent);

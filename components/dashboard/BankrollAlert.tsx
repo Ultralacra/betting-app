@@ -38,7 +38,7 @@ export function BankrollAlert({
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempThreshold, setTempThreshold] = useState(
-    String(config.thresholdPercentage)
+    String(config.thresholdPercentage),
   );
 
   if (!isLoaded || !isAlertActive || !alertState) {
@@ -46,8 +46,10 @@ export function BankrollAlert({
   }
 
   const severityClasses = {
-    warning: "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-    critical: "border-destructive/50 bg-destructive/10 text-destructive animate-pulse-soft",
+    warning:
+      "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
+    critical:
+      "border-destructive/50 bg-destructive/10 text-destructive animate-pulse-soft",
   };
 
   const handleSaveSettings = () => {
@@ -62,11 +64,11 @@ export function BankrollAlert({
     <div
       className={cn(
         "rounded-lg border p-4 flex items-start gap-3 animate-slide-up",
-        severityClasses[alertState.severity]
+        severityClasses[alertState.severity],
       )}
     >
       <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-      
+
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm">{alertState.message}</div>
         <div className="text-xs mt-1 opacity-80">
@@ -82,6 +84,7 @@ export function BankrollAlert({
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 opacity-60 hover:opacity-100"
+              aria-label="Configurar alertas de bankroll"
             >
               <Settings className="h-4 w-4" />
             </Button>

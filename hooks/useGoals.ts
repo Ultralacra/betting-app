@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { calculateGoalProgress } from "@/lib/analytics";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-const GOALS_STORAGE_KEY = "betting-app:financial-goals";
+const GOALS_STORAGE_KEY = STORAGE_KEYS.GOALS;
 
 export interface FinancialGoal {
     id: string;
@@ -42,6 +43,7 @@ function saveGoalsToStorage(goals: FinancialGoal[]): void {
 
 /**
  * Hook for managing financial goals with localStorage persistence
+ * Includes cross-tab synchronization
  */
 export function useGoals(currentBalance: number, initialBudget: number) {
     const [goals, setGoals] = useState<FinancialGoal[]>([]);
@@ -51,6 +53,23 @@ export function useGoals(currentBalance: number, initialBudget: number) {
     useEffect(() => {
         setGoals(loadGoalsFromStorage());
         setIsLoaded(true);
+    }, []);
+
+    // Sincronización entre pestañas
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === GOALS_STORAGE_KEY && e.newValue) {
+                try {
+                    const newGoals = JSON.parse(e.newValue) as FinancialGoal[];
+                    setGoals(newGoals);
+                } catch {
+                    // Ignore parse errors
+                }
+            }
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+        return () => window.removeEventListener("storage", handleStorageChange);
     }, []);
 
     // Calculate progress for all goals

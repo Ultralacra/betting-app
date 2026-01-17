@@ -186,6 +186,8 @@ export async function POST(req: Request) {
   }
 
   // Notificación push (best-effort)
+  let pushSent = 0;
+  let pushFailed = 0;
   try {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -197,12 +199,15 @@ export async function POST(req: Request) {
         .select("endpoint,p256dh,auth");
 
       const payload = JSON.stringify({
-        title: "Nuevo logro",
+        title: "🏆 Nuevo logro",
         body: `${parleyName} • ${line} • ${momio}`,
         url: "/dashboard",
       });
 
-      await Promise.all(
+      // eslint-disable-next-line no-console
+      console.log(`[Push] Enviando notificación a ${subs?.length ?? 0} suscriptores...`);
+
+      const results = await Promise.all(
         (subs ?? []).map(async (s: any) => {
           const subscription = {
             endpoint: s.endpoint,
@@ -210,6 +215,7 @@ export async function POST(req: Request) {
           };
           try {
             await webpush.sendNotification(subscription as any, payload);
+            return { ok: true };
           } catch (e: any) {
             const statusCode = e?.statusCode;
             if (statusCode === 404 || statusCode === 410) {
@@ -218,15 +224,26 @@ export async function POST(req: Request) {
                 .delete()
                 .eq("endpoint", s.endpoint);
             }
+            return { ok: false, statusCode };
           }
         })
       );
+
+      pushSent = results.filter((r) => r.ok).length;
+      pushFailed = results.length - pushSent;
+
+      // eslint-disable-next-line no-console
+      console.log(`[Push] Resultado: ${pushSent} enviadas, ${pushFailed} fallidas`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn("[Push] VAPID keys no configuradas, no se enviaron notificaciones");
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[Push] Error al enviar notificaciones:", e);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, pushSent, pushFailed });
 }
 
 export async function PATCH(req: Request) {

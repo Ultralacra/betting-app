@@ -344,9 +344,9 @@ export function ProfileClient({ profile }: Props) {
             open={membershipModalOpen}
             onOpenChange={setMembershipModalOpen}
           >
-            <DialogContent className="glass-card border-primary/20 !shadow-none">
+            <DialogContent className="border-accent/20 shadow-xl">
               <DialogHeader>
-                <DialogTitle className="text-2xl text-primary">
+                <DialogTitle className="text-2xl text-accent">
                   {membershipModalText?.title ?? "Membresía"}
                 </DialogTitle>
                 <DialogDescription className="text-lg text-foreground/80">
@@ -392,10 +392,10 @@ export function ProfileClient({ profile }: Props) {
           <Card className="bg-background border border-border/50 overflow-hidden !shadow-none">
             {/* Gradient line at top - keeping it subtle or neutral if needed, but user said 'gain colors green'. This separation line can correspond to gain/success if we want? I'll keep it standard primary-accent for now, or match gain color? sticking to primary for neutrality unless requested */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 to-primary/40 opacity-50" />
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="p-2.5 rounded-full bg-primary/5 text-primary">
-                  <ShieldCheck className="h-6 w-6" />
+            <CardHeader className="pb-4 pt-6">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-accent/10 text-accent">
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
                 Información Personal
               </CardTitle>
@@ -403,19 +403,21 @@ export function ProfileClient({ profile }: Props) {
             <CardContent className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground font-medium flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> Email
+                  <Label className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-accent" /> Email
                   </Label>
-                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50 font-mono text-sm flex items-center justify-between">
-                    <span>{profile.email ?? "No registrado"}</span>
-                    {profile.provider === "google" && (
-                      <Badge variant="outline" className="ml-2 text-xs">
+                  <div className="p-3.5 rounded-lg bg-accent/5 border border-accent/20 font-mono text-sm hover:border-accent/40 transition-colors">
+                    <span className="text-foreground">{profile.email ?? "No registrado"}</span>
+                  </div>
+                  {profile.provider === "google" && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Badge variant="outline" className="text-xs bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           width="12"
                           height="12"
-                          className="mr-1"
+                          className="mr-1.5"
                         >
                           <path
                             fill="#4285F4"
@@ -436,18 +438,19 @@ export function ProfileClient({ profile }: Props) {
                         </svg>
                         Google
                       </Badge>
-                    )}
-                  </div>
+                      <span className="text-xs text-muted-foreground">Cuenta vinculada</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label className="text-muted-foreground font-medium flex items-center gap-2">
-                    <UserIcon className="w-4 h-4" /> Nombre
+                  <Label className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+                    <UserIcon className="w-4 h-4 text-accent" /> Nombre
                   </Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="bg-background/50 focus:bg-background transition-colors !shadow-none"
+                    className="bg-accent/5 border-accent/20 focus:border-accent/40 transition-all !shadow-none"
                     placeholder="Tu nombre completo"
                   />
                 </div>
@@ -457,7 +460,7 @@ export function ProfileClient({ profile }: Props) {
                 <Button
                   onClick={saveProfile}
                   disabled={loading}
-                  className="btn-hover-effect min-w-[120px] !shadow-none"
+                  className="bg-accent hover:bg-accent/90 text-white min-w-[120px] !shadow-none"
                 >
                   Guardar Cambios
                 </Button>
@@ -465,8 +468,8 @@ export function ProfileClient({ profile }: Props) {
 
               {profile.hasPassword && (
                 <div className="border-t border-border/50 pt-6 space-y-4">
-                  <Label className="text-muted-foreground font-medium flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> Seguridad
+                  <Label className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-accent" /> Seguridad
                   </Label>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Input
@@ -474,12 +477,12 @@ export function ProfileClient({ profile }: Props) {
                       placeholder="Nueva contraseña (mín. 6 caracteres)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-background/50 focus:bg-background transition-colors flex-1 !shadow-none"
+                      className="bg-accent/5 border-accent/20 focus:border-accent/40 transition-all flex-1 !shadow-none"
                     />
                     <Button
                       onClick={changePassword}
                       variant="outline"
-                      className="btn-hover-effect whitespace-nowrap !shadow-none"
+                      className="border-accent/30 hover:bg-accent/10 hover:text-accent whitespace-nowrap !shadow-none"
                       disabled={loading}
                     >
                       Actualizar Contraseña
@@ -490,7 +493,7 @@ export function ProfileClient({ profile }: Props) {
 
               {!profile.hasPassword && (
                 <div className="border-t border-border/50 pt-6">
-                  <div className="p-4 rounded-lg bg-muted/30 border border-border/50 flex items-start gap-3">
+                  <div className="p-4 rounded-lg bg-accent/5 border border-accent/20 flex items-start gap-3">
                     <ShieldCheck className="h-5 w-5 text-accent mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-medium">
@@ -514,13 +517,14 @@ export function ProfileClient({ profile }: Props) {
           </Card>
 
           {/* Membership Card */}
-          <Card className="bg-background border border-border/50 relative overflow-hidden group !shadow-none">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <CardHeader>
+          <Card className="bg-card border border-border/50 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent/40 via-primary/30 to-accent/40" />
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <CardHeader className="pt-6">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-full bg-primary/5 text-primary">
-                    <CreditCard className="h-6 w-6" />
+                  <div className="p-2 rounded-lg bg-accent/10 text-accent">
+                    <CreditCard className="h-5 w-5" />
                   </div>
                   Estado de Membresía
                 </div>

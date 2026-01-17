@@ -66,3 +66,34 @@ end $$;
 -- La política existente "Lectura de logros autenticada" solo permite SELECT.
 -- Los endpoints de admin usan service_role, así que RLS no los bloquea, 
 -- pero es buena práctica tener políticas explícitas si se planea acceso desde cliente no-admin (que no es el caso actual).
+
+
+-- 4. Historial de Notificaciones (envíos desde admin)
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  url text null,
+  sent_count int not null default 0,
+  failed_count int not null default 0,
+  created_by uuid null references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_created_by_idx on public.notifications(created_by);
+
+alter table public.notifications enable row level security;
+
+-- Solo el rol de servicio y administradores pueden insertar/seleccionar
+drop policy if exists "notifications_select_admin" on public.notifications;
+create policy "notifications_select_admin" on public.notifications
+  for select
+  to authenticated
+  using (public.is_admin() or auth.role() = 'service_role');
+
+drop policy if exists "notifications_insert_admin" on public.notifications;
+create policy "notifications_insert_admin" on public.notifications
+  for insert
+  to authenticated
+  with check (public.is_admin() or auth.role() = 'service_role');
+

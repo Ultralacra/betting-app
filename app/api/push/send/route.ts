@@ -95,6 +95,22 @@ export async function POST(req: NextRequest) {
   const sent = results.filter((r) => r.ok).length;
   const failed = results.length - sent;
 
+  // Registrar historial en la tabla `notifications` si existe
+  try {
+    await admin.from("notifications").insert({
+      title,
+      body: message,
+      url,
+      sent_count: sent,
+      failed_count: failed,
+      created_by: user.id,
+    });
+  } catch (e) {
+    // No fatal; registrar en logs de server si hay error.
+    // eslint-disable-next-line no-console
+    console.warn("No se pudo guardar el historial de notificación:", e);
+  }
+
   const res = NextResponse.json({ ok: true, sent, failed });
   cookiesToSet.forEach(({ name, value, options }) =>
     res.cookies.set(name, value, options)

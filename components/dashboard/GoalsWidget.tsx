@@ -30,7 +30,7 @@ export function GoalsWidget({
 }: GoalsWidgetProps) {
   const { goals, activeGoal, addGoal, deleteGoal, isLoaded } = useGoals(
     currentBalance,
-    initialBudget
+    initialBudget,
   );
 
   const [isOpen, setIsOpen] = useState(false);
@@ -46,7 +46,7 @@ export function GoalsWidget({
       newGoalName.trim(),
       parseFloat(newGoalAmount),
       newGoalDeadline,
-      newGoalOdds ? parseFloat(newGoalOdds) : undefined
+      newGoalOdds ? parseFloat(newGoalOdds) : undefined,
     );
     setNewGoalName("");
     setNewGoalAmount("");
@@ -75,7 +75,12 @@ export function GoalsWidget({
           </CardTitle>
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                aria-label="Agregar nueva meta financiera"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -186,7 +191,7 @@ function GoalItem({
     <div
       className={cn(
         "rounded-lg border p-3 space-y-2 transition-colors",
-        goal.achieved ? "border-accent/30 bg-accent/5" : "border-border/50"
+        goal.achieved ? "border-accent/30 bg-accent/5" : "border-border/50",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -234,7 +239,7 @@ function GoalItem({
           <span
             className={cn(
               "font-medium",
-              goal.achieved ? "text-accent" : "text-primary"
+              goal.achieved ? "text-accent" : "text-primary",
             )}
           >
             {Math.round(goal.progress)}%

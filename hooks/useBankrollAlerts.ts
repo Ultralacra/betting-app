@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { checkBankrollAlert } from "@/lib/analytics";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-const ALERTS_STORAGE_KEY = "betting-app:bankroll-alerts";
+const ALERTS_STORAGE_KEY = STORAGE_KEYS.BANKROLL_ALERTS;
 
 export interface BankrollAlertConfig {
     enabled: boolean;
@@ -61,6 +62,24 @@ export function useBankrollAlerts(
     useEffect(() => {
         setConfig(loadConfigFromStorage());
         setIsLoaded(true);
+    }, []);
+
+    // Sincronización entre pestañas
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === ALERTS_STORAGE_KEY && e.newValue) {
+                try {
+                    const newConfig = JSON.parse(e.newValue) as BankrollAlertConfig;
+                    setConfig({ ...DEFAULT_CONFIG, ...newConfig });
+                    setDismissed(false);
+                } catch {
+                    // Ignore parse errors
+                }
+            }
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+        return () => window.removeEventListener("storage", handleStorageChange);
     }, []);
 
     // Calculate alert state

@@ -58,7 +58,7 @@ interface PlanManagerProps {
   onLoadPlan: (
     config: BettingConfig,
     plan: DayResult[],
-    meta?: { id: string; name: string; savedAt: string }
+    meta?: { id: string; name: string; savedAt: string },
   ) => void;
   onEditPlan?: (plan: SavedPlan) => void;
   onSavedPlansCountChange?: (count: number) => void;
@@ -77,7 +77,7 @@ export function PlanManager({
 
   const [planLimitOpen, setPlanLimitOpen] = useState(false);
   const [planLimitText, setPlanLimitText] = useState<string>(
-    "Tu plan alcanzó el máximo de planes guardados."
+    "Tu plan alcanzó el máximo de planes guardados.",
   );
 
   const tryShowPlanLimit = (e: unknown) => {
@@ -89,7 +89,7 @@ export function PlanManager({
       };
       if (parsed?.error === "plan_limit_reached") {
         setPlanLimitText(
-          parsed.details ?? "Tu plan alcanzó el máximo de planes guardados."
+          parsed.details ?? "Tu plan alcanzó el máximo de planes guardados.",
         );
         setPlanLimitOpen(true);
         return true;
@@ -507,6 +507,7 @@ export function PlanManager({
                         variant="ghost"
                         onClick={() => requestLoadPlan(saved)}
                         title="Cargar"
+                        aria-label={`Cargar plan ${saved.name}`}
                       >
                         <FolderOpen className="h-3 w-3" />
                       </Button>
@@ -517,6 +518,7 @@ export function PlanManager({
                             variant="ghost"
                             title="Opciones"
                             className="gap-1"
+                            aria-label={`Opciones para plan ${saved.name}`}
                           >
                             <Settings className="h-3 w-3" />
                             <span className="hidden sm:inline">Opciones</span>

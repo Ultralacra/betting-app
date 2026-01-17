@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { BettingConfig } from "@/lib/betting-types";
-import { Calculator, RotateCcw, Wallet, Plus } from "lucide-react";
+import { Calculator, RotateCcw, Wallet, Plus, AlertCircle } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
 import type { DateRange } from "react-day-picker";
 import { toast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
+import { BettingConfigSchema, formatZodErrors } from "@/lib/validations";
+import { BETTING_LIMITS } from "@/lib/constants";
 
 interface BettingFormProps {
   onSubmit: (config: BettingConfig) => void | Promise<void>;
@@ -57,10 +59,64 @@ export function BettingForm({
       endDate: new Date(Date.now() + 29 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-    }
+    },
   );
 
+  // Estado de inputs como strings para permitir borrado completo
+  const [inputValues, setInputValues] = useState({
+    initialBudget: String(initialConfig?.initialBudget ?? 25),
+    odds: String(initialConfig?.odds ?? 1.6),
+    reinvestmentPercentage: String(initialConfig?.reinvestmentPercentage ?? 50),
+    betsPerDay: String(initialConfig?.betsPerDay ?? 1),
+    stakePercentage: String(initialConfig?.stakePercentage ?? 10),
+  });
+
   const [rechargeAmount, setRechargeAmount] = useState<string>("");
+
+  // Sincronizar inputValues cuando cambie initialConfig (ej. al editar un plan)
+  useEffect(() => {
+    if (initialConfig) {
+      setInputValues({
+        initialBudget: String(initialConfig.initialBudget),
+        odds: String(initialConfig.odds),
+        reinvestmentPercentage: String(initialConfig.reinvestmentPercentage),
+        betsPerDay: String(initialConfig.betsPerDay),
+        stakePercentage: String(initialConfig.stakePercentage),
+      });
+      setFormData(initialConfig);
+      if (initialConfig.startDate && initialConfig.endDate) {
+        setDateRange({
+          from: new Date(initialConfig.startDate),
+          to: new Date(initialConfig.endDate),
+        });
+      }
+    }
+  }, [initialConfig]);
+
+  // Validación en tiempo real con Zod
+  const validationErrors = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) return {};
+
+    const configToValidate = {
+      ...formData,
+      startDate: dateRange.from.toISOString().split("T")[0],
+      endDate: dateRange.to.toISOString().split("T")[0],
+    };
+
+    const result = BettingConfigSchema.safeParse(configToValidate);
+    if (result.success) return {};
+
+    const errors: Record<string, string> = {};
+    result.error.errors.forEach((err) => {
+      const field = err.path[0] as string;
+      if (!errors[field]) {
+        errors[field] = err.message;
+      }
+    });
+    return errors;
+  }, [formData, dateRange]);
+
+  const hasErrors = Object.keys(validationErrors).length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +134,18 @@ export function BettingForm({
       startDate: dateRange.from.toISOString().split("T")[0],
       endDate: dateRange.to.toISOString().split("T")[0],
     };
+
+    // Validar con Zod antes de enviar
+    const validation = BettingConfigSchema.safeParse(configWithDates);
+    if (!validation.success) {
+      toast({
+        variant: "destructive",
+        title: "Datos inválidos",
+        description: formatZodErrors(validation.error).join(", "),
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await onSubmit(configWithDates);
@@ -87,18 +155,31 @@ export function BettingForm({
   };
 
   const handleChange = (field: keyof BettingConfig, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: [
-        "initialBudget",
-        "odds",
-        "reinvestmentPercentage",
-        "betsPerDay",
-        "stakePercentage",
-      ].includes(field)
-        ? Number.parseFloat(value) || 0
-        : value,
-    }));
+    const numericFields = [
+      "initialBudget",
+      "odds",
+      "reinvestmentPercentage",
+      "betsPerDay",
+      "stakePercentage",
+    ] as const;
+
+    if (numericFields.includes(field as (typeof numericFields)[number])) {
+      // Actualizar el valor del input como string (permite vacío)
+      setInputValues((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      // Actualizar formData con el valor numérico (o 0 si está vacío)
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value === "" ? 0 : Number.parseFloat(value) || 0,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const handleRecharge = () => {
@@ -200,10 +281,21 @@ export function BettingForm({
                 id="budget"
                 type="number"
                 step="0.01"
-                value={formData.initialBudget}
+                min={BETTING_LIMITS.MIN_INITIAL_BUDGET}
+                value={inputValues.initialBudget}
                 onChange={(e) => handleChange("initialBudget", e.target.value)}
+                className={
+                  validationErrors.initialBudget ? "border-destructive" : ""
+                }
+                aria-invalid={!!validationErrors.initialBudget}
                 required
               />
+              {validationErrors.initialBudget && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {validationErrors.initialBudget}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -212,11 +304,20 @@ export function BettingForm({
                 id="odds"
                 type="number"
                 step="0.01"
-                min="1.01"
-                value={formData.odds}
+                min={BETTING_LIMITS.MIN_ODDS}
+                max={BETTING_LIMITS.MAX_ODDS}
+                value={inputValues.odds}
                 onChange={(e) => handleChange("odds", e.target.value)}
+                className={validationErrors.odds ? "border-destructive" : ""}
+                aria-invalid={!!validationErrors.odds}
                 required
               />
+              {validationErrors.odds && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {validationErrors.odds}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -225,17 +326,28 @@ export function BettingForm({
                 id="stake"
                 type="number"
                 step="1"
-                min="1"
-                max="100"
-                value={formData.stakePercentage}
+                min={BETTING_LIMITS.MIN_STAKE_PERCENTAGE}
+                max={BETTING_LIMITS.MAX_STAKE_PERCENTAGE}
+                value={inputValues.stakePercentage}
                 onChange={(e) =>
                   handleChange("stakePercentage", e.target.value)
                 }
+                className={
+                  validationErrors.stakePercentage ? "border-destructive" : ""
+                }
+                aria-invalid={!!validationErrors.stakePercentage}
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                {"Del saldo actual por apuesta"}
-              </p>
+              {validationErrors.stakePercentage ? (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {validationErrors.stakePercentage}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {"Del saldo actual por apuesta"}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -246,17 +358,30 @@ export function BettingForm({
                 id="reinvestment"
                 type="number"
                 step="1"
-                min="0"
-                max="100"
-                value={formData.reinvestmentPercentage}
+                min={BETTING_LIMITS.MIN_REINVESTMENT}
+                max={BETTING_LIMITS.MAX_REINVESTMENT}
+                value={inputValues.reinvestmentPercentage}
                 onChange={(e) =>
                   handleChange("reinvestmentPercentage", e.target.value)
                 }
+                className={
+                  validationErrors.reinvestmentPercentage
+                    ? "border-destructive"
+                    : ""
+                }
+                aria-invalid={!!validationErrors.reinvestmentPercentage}
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                {"Porcentaje de ganancia a reinvertir"}
-              </p>
+              {validationErrors.reinvestmentPercentage ? (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {validationErrors.reinvestmentPercentage}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {"Porcentaje de ganancia a reinvertir"}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -265,12 +390,22 @@ export function BettingForm({
                 id="betsPerDay"
                 type="number"
                 step="1"
-                min="1"
-                max="10"
-                value={formData.betsPerDay}
+                min={BETTING_LIMITS.MIN_BETS_PER_DAY}
+                max={BETTING_LIMITS.MAX_BETS_PER_DAY}
+                value={inputValues.betsPerDay}
                 onChange={(e) => handleChange("betsPerDay", e.target.value)}
+                className={
+                  validationErrors.betsPerDay ? "border-destructive" : ""
+                }
+                aria-invalid={!!validationErrors.betsPerDay}
                 required
               />
+              {validationErrors.betsPerDay && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {validationErrors.betsPerDay}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -286,7 +421,12 @@ export function BettingForm({
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isSubmitting || hasErrors}
+                aria-label="Generar plan de apuestas"
+              >
                 {isSubmitting ? (
                   <>
                     <Spinner className="mr-2" />
@@ -297,7 +437,12 @@ export function BettingForm({
                 )}
               </Button>
               {initialConfig && (
-                <Button type="button" variant="outline" onClick={onReset}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onReset}
+                  aria-label="Reiniciar configuración"
+                >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               )}
